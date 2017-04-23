@@ -1,6 +1,6 @@
 [submodule "src/ucx"]
 	path = src/ucx
 	url = https://github.com/openucx/ucx.git
-[submodule "ucx"]
-	path = ucx
-	url = https://github.com/openucx/ucx.git
+#[submodule "ucx"]
+#	path = ucx
+#	url = https://github.com/openucx/ucx.git
