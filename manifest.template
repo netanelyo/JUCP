@@ -1,0 +1,6 @@
+Name: org/ucx/jucx
+Package: org.ucx.jucx
+Class-Path: .
+Implementation-Title: JUCP (Java interface to UCP)
+Implementation-Vendor: Mellanox Technologies
+Implementation-Version: 0000
