@@ -27,7 +27,7 @@ rm -fr $BIN_FOLDER
 mkdir -p $BIN_FOLDER
 
 ## Build UCX
-echo "Build UCX... libucx C code"
+echo "Build UCX... libuc* C code"
 cd $TOP_DIR
 git submodule update --init
 GIT_VERSION_UCX=`cd src/ucx; git describe --long --tags --always --dirty`

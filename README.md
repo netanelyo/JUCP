@@ -1,13 +1,11 @@
-<h1>JXIO</h1>
+<h1>JUCP</h1>
 
-JXIO is Java API over AccelIO (C library).</br>  
-AccelIO (http://www.accelio.org/) is a high-performance asynchronous reliable messaging and RPC library optimized for hardware acceleration. RDMA and TCP/IP transport are implemented, and other transports, such as shared-memory can take advantage of efficient and convenient API.
-
+TODO: add description
 
 <h2>Build instructions:</h2>
-1. Download: git clone https://github.com/accelio/JXIO.git</br>
-2. Move into folder: cd JXIO</br>
-3. Set JAVA_HOME: export JAVA_HOME=/usr/java/jdk1.7.0_25/</br>
+1. Download: git clone https://github.com/netanelyo/JUCP.git</br>
+2. Move into folder: cd JUCP</br>
+3. Set JAVA_HOME: export JAVA_HOME=/usr/lib/jvm/java-1.x.x-openjdk (x.x - according to java version)</br>
 4. Build: ./build.sh (this pulls the relevant C level Accelio library and builds everything you need)</br>
 
 <h2>Examples:</h2>
