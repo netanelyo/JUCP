@@ -45,6 +45,7 @@ m4/
 *.class
 
 # Accellio specific
+src/java/org/accelio
 
 # JX specific
 /bin
