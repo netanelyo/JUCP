@@ -85,10 +85,10 @@ JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
 /*
  * Class:     org_ucx_jucx_Bridge
  * Method:    recvMsgNbNative
- * Signature: (JJLjava/nio/ByteBuffer;I)V
+ * Signature: (JJ)Ljava/nio/ByteBuffer;
  */
-JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
-  (JNIEnv *, jclass, jlong, jlong, jobject, jint);
+JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
+  (JNIEnv *, jclass, jlong, jlong);
 
 }
 

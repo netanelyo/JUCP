@@ -191,53 +191,66 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_testerNative
 	std::cout << "Compare = " << memcmp(jArr, (ucp_address_t*)nativeID, env->GetArrayLength(jArr)) << std::endl;
 }
 
+
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
   (JNIEnv *env, jclass cls, jlong workerID, jlong jtag, jlongArray ret)
 {
 	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
 	ucp_tag_recv_info_t info_tag;
-	ucp_tag_message_h msg_tag = NULL;
 	ucp_tag_t tag = (ucp_tag_t) jtag;
 	ucp_tag_t mask = -1;
 	jlong tmp;
 	jlong* msg_tag_ptr;
-
-	//TODO
-
-	int cnt = 0;
+	ucp_tag_message_h msg_tag = NULL;
 
 	do
 	{
-		cnt ++;
 		ucp_worker_progress(ucp_worker);
 
 		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, mask, 1, &info_tag);
 	} while (msg_tag == NULL);
 
-	std::cout << "Got msg_tag --> not NULL  " << cnt << std::endl;
-
 	tmp = (jlong)msg_tag;
 	msg_tag_ptr = &tmp;
 	env->SetLongArrayRegion(ret, 0, 1, msg_tag_ptr);
 
-	std::cout << "Info len = " << info_tag.length << std::endl;
+	std::cout << "In C: Info len = " << info_tag.length << std::endl;
+	std::cout << "In C: Msg tag = " << std::hex << "0x" << info_tag.sender_tag << std::endl;
 
 	return info_tag.length;
 }
 
-JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
-  (JNIEnv *env, jclass cls, jlong workerID, jlong jtagMsg, jobject buff, jint buffSize)
+JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
+  (JNIEnv *env, jclass cls, jlong workerID, jlong jtag)
 {
-	char* msg = (char*)(env->GetDirectBufferAddress(buff));
-	char* blah = new char[1024];
-	struct ucx_context* request = NULL;
-	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
-	ucp_tag_message_h msg_tag = (ucp_tag_message_h) jtagMsg;
 
-	request = (struct ucx_context*)ucp_tag_msg_recv_nb(ucp_worker, blah, (size_t)(int)buffSize,
+	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
+	ucp_tag_recv_info_t info_tag;
+	ucp_tag_t tag = (ucp_tag_t) jtag;
+	ucp_tag_t mask = -1;
+	ucp_tag_message_h msg_tag = NULL;
+	size_t msg_len = 0;
+
+	do
+	{
+		ucp_worker_progress(ucp_worker);
+
+		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, mask, 1, &info_tag);
+
+	} while (msg_tag == NULL);
+
+	msg_len = info_tag.length;
+//	char* msg = (char*)(env->GetDirectBufferAddress(buff));
+	char* msg = new char[msg_len];
+
+	struct ucx_context* request = NULL;
+
+	request = (struct ucx_context*)ucp_tag_msg_recv_nb(ucp_worker, msg, msg_len,
 	                                  ucp_dt_make_contig(1), msg_tag, recv_handle);
 
-	std::cout << "In C: Msg = " << blah << std::endl;
+	std::cout << "In C: Msg = " << msg << std::endl;
+
+	return env->NewDirectByteBuffer(msg, msg_len);
 }
 
 

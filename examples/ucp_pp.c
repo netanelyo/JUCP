@@ -44,7 +44,7 @@ static size_t		 	 pp_msg_size	= 16;
 static uint32_t			 iters			= 1000;
 static int 				 num_of_threads = 1;
 static size_t 			 local_addr_len;
-static size_t 			 peer_addr_len = 0;
+static size_t 			 peer_addr_len;
 
 
 /*
@@ -124,48 +124,47 @@ err:
 static ucs_status_t client_get_peer_addr() {
 	size_t 		size = 0;
 	int			rc	 = 0;
-	char tmp_buff[8] = { 0 };
-	int readB = 0, toRead = 4;
-	void* addr_buff;
+	size_t 		bytes = 0;
+	size_t 		read_bytes = 0;
+	char 		tmp_buff[8] = { 0 };
+	size_t 		tmp = 0;
 
 	size = sizeof(peer_addr_len);
-	while (readB < toRead){ 
-		rc = read(sockfd, tmp_buff + readB, size - readB); readB += rc;
-		if (rc < 0)
-		{
+	while (read_bytes < size) {
+
+		bytes = read(sockfd, &tmp, size - read_bytes);
+		if (bytes < 0) {
 			perror("Client - Error read()ing peer_addr_len");
 			goto err;
 		}
-	}
 
-	peer_addr_len = ntohl(*((int *) &tmp_buff));
-	printf("length = %llu\n", peer_addr_len);
+		read_bytes += bytes;
+		printf("bytes = %d\n", bytes);
+	}
+//TODO
+	peer_addr_len = ntohl(tmp >> (unsigned int)32);
+//	peer_addr_len = tmp;
+
+	printf("peer_addr_len = %zu\n", peer_addr_len);
 
 	peer_addr = calloc(1, peer_addr_len);
-	addr_buff = calloc(1, peer_addr_len);
 	if (!peer_addr)
 	{
-		fprintf(stderr, "Client - calloc()\n");
+		fprintf(stderr, "Client - calloc()");
 		goto err;
 	}
 
-	toRead = peer_addr_len;
-	readB = 0;
-	while (readB < toRead) {
-		rc = read(sockfd, addr_buff + readB, peer_addr_len - readB);
-		readB += rc;
-		printf("rc = %d\n", rc);
-		if (rc < 0)
-		{
+	read_bytes = 0;
+	while (read_bytes < peer_addr_len) {
+
+		bytes = read(sockfd, (char*)peer_addr + read_bytes, peer_addr_len - read_bytes);
+		if (bytes < 0) {
 			perror("Client - Error read()ing peer_addr");
 			goto err;
 		}
+
+		read_bytes += bytes;
 	}
-
-	memcpy(peer_addr, addr_buff, peer_addr_len);
-	free(addr_buff);
-
-	printf("after read\n");
 
 	return UCS_OK;
 
@@ -447,6 +446,9 @@ static struct pp_msg* pp_probe_and_recv(ucp_worker_h worker, size_t *in_msg_len)
 
 	/* Allocate sufficient memory according to incoming data */
 	msg_len = info.length;
+
+	printf("msg_len = %d\n", msg_len);
+
 	in_msg 	= calloc(1, msg_len);
 	GOTO_ERR_HANDLER(!in_msg, "PP probe&recv - calloc()", err);
 
@@ -504,11 +506,15 @@ static int pp_run_ucp_server(ucp_worker_h worker) {
     GOTO_ERR_HANDLER(!out_msg, "UCP Server - calloc()", err_ep);
     cnt 	 = &out_msg->cnt;
 
+    char tmp_str[100] = {0};
+
 	/* Ping-Pong loop */
 	for (i = 0; i < iters; ++i) {
     	if (!i) {
     		in_msg = pp_probe_and_recv(worker, &in_msg_size);
     		GOTO_ERR_HANDLER(!in_msg, "UCP Server - pp_probe_and_recv()", err_msg);
+    		memcpy(tmp_str, in_msg + 1, 10);
+    		printf("%s\n", tmp_str);
     	}
     	else {
     		rc = pp_recv_wo_probe(worker, in_msg, i, in_msg_size);
@@ -571,8 +577,8 @@ static int pp_run_ucp_client(ucp_worker_h worker) {
 	memcpy(addr, &local_addr_len, size);
 	memcpy(addr + size, local_addr, local_addr_len);
 
-	rc = pp_send_address_nb(peer_ep, addr, msg_size);
-	GOTO_ERR_HANDLER(rc, "Client - pp_send_address_nb()", err_ep);
+//	rc = pp_send_address_nb(peer_ep, addr, msg_size);
+//	GOTO_ERR_HANDLER(rc, "Client - pp_send_address_nb()", err_ep);
 
     free(addr);
 
@@ -587,9 +593,12 @@ static int pp_run_ucp_client(ucp_worker_h worker) {
     }
 
     msg_size = pp_msg_size + sizeof(*out_msg);
-    printf("In C: msg size = %d\n", msg_size);
     out_msg  = calloc(1, msg_size);
-    GOTO_ERR_HANDLER(!out_msg, "UCP Client - calloc()", err_ep);
+
+    char* msg_to_java = calloc(1, pp_msg_size);
+    strcpy(msg_to_java, "C to Java");
+    printf("Msg to send = %s\n", msg_to_java);
+    GOTO_ERR_HANDLER(!msg_to_java, "UCP Client - calloc()", err_ep);
     cnt 	 = &out_msg->cnt;
 
     /* Ping-Pong loop */
@@ -597,23 +606,19 @@ static int pp_run_ucp_client(ucp_worker_h worker) {
 		memcpy(out_msg + 1, clnt_msg, sizeof(clnt_msg));
 		*cnt = i;
 
-    	rc = pp_send_data_nb(worker, peer_ep, out_msg, msg_size, !i);
+    	rc = pp_send_data_nb(worker, peer_ep, msg_to_java, pp_msg_size, !i);
     	GOTO_ERR_HANDLER(rc, "UCP Client - pp_send_data_nb()", err_msg);
 
-	
-	/*
-    	if (!i) {
-    		in_msg = pp_probe_and_recv(worker, &in_msg_size);
-    		GOTO_ERR_HANDLER(!in_msg, "UCP Client - pp_probe_and_recv()", err_msg);
-    	}
-    	else {
-    		rc = pp_recv_wo_probe(worker, in_msg, i, in_msg_size);
-    		GOTO_ERR_HANDLER(rc, "UCP Client - pp_recv_wo_probe()", err_msg);
-    	}
-
-    	GOTO_ERR_HANDLER(in_msg->cnt != i, "UCP Client - wrong msg received", err_msg);
-	
-	*/
+//    	if (!i) {
+//    		in_msg = pp_probe_and_recv(worker, &in_msg_size);
+//    		GOTO_ERR_HANDLER(!in_msg, "UCP Client - pp_probe_and_recv()", err_msg);
+//    	}
+//    	else {
+//    		rc = pp_recv_wo_probe(worker, in_msg, i, in_msg_size);
+//    		GOTO_ERR_HANDLER(rc, "UCP Client - pp_recv_wo_probe()", err_msg);
+//    	}
+//
+//    	GOTO_ERR_HANDLER(in_msg->cnt != i, "UCP Client - wrong msg received", err_msg);
 	}
 
     rc = gettimeofday(&end, NULL);

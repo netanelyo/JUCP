@@ -1,7 +1,5 @@
 package org.ucx.jucx;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -62,11 +60,7 @@ public class UCPWorker {
 	
 	public UCPTagMsg recvMessage(long tag) {
 		UCPTagMsg msg = new UCPTagMsg(this, tag);
-		
-		Bridge.recvMsgNb(this, msg);
-		
 		return msg;
-		
 	}
 	
 }

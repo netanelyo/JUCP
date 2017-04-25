@@ -100,10 +100,10 @@ public class Bridge {
 		return probeAndProgressNative(worker.getNativeID(), tag, tagMsg);
 	}
 	
-	private static native void recvMsgNbNative(long workerID, long tagMsgID, ByteBuffer buff, int buffSize);
+	private static native ByteBuffer recvMsgNbNative(long workerID, long tag);
 	
-	public static void recvMsgNb(UCPWorker worker, UCPTagMsg msg) {
-		recvMsgNbNative(worker.getNativeID(), msg.getTagMsgID(), msg.getBuffer(), msg.getMsgSize());
+	public static ByteBuffer recvMsgNb(UCPWorker worker, long tag) {
+		return recvMsgNbNative(worker.getNativeID(), tag);
 	}
 	
 //	private static native void closeWorkerNative()
