@@ -14,7 +14,7 @@ public class UCPWorker {
 	private UCPWorker(UCPContext ctx) {
 		ucpContext = ctx;
 		nativeID = Bridge.createWorker(ctx.getNativeID());
-		workerAddr = new UCPWorkerAddress(nativeID);
+		workerAddr = new UCPWorkerAddress(nativeID, false);
 	}
 	
 	public static UCPWorker getInstance(UCPContext ctx) {
@@ -42,13 +42,15 @@ public class UCPWorker {
 		
 		private final byte[] workerAddr;
 		private long nativeID;
+		private boolean isRemote;
 		
-		private UCPWorkerAddress(long workerNativeID) {
+		private UCPWorkerAddress(long workerNativeID, boolean rem) {
 			long[] retValue = new long[1];
 			workerAddr = Bridge.getWorkerAddress(workerNativeID, retValue);
 			nativeID = retValue[0];
+			isRemote = rem;
 		}
-
+		
 		public byte[] getWorkerAddr() {
 			return workerAddr.clone();
 		}
@@ -56,10 +58,18 @@ public class UCPWorker {
 		public long getNativeID() {
 			return nativeID;
 		}
+		
+		public boolean isRemote() {
+			return isRemote;
+		}
+		
+		public void setRemote(boolean rem) {
+			isRemote = rem;
+		}
 	}
 	
 	public UCPTagMsg recvMessage(long tag) {
-		UCPTagMsg msg = new UCPTagMsg(this, tag);
+		UCPTagMsg msg = UCPTagMsg.getInMsg(this, tag);
 		return msg;
 	}
 	

@@ -247,6 +247,7 @@ JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
 
 	request = (struct ucx_context*)ucp_tag_msg_recv_nb(ucp_worker, msg, msg_len,
 	                                  ucp_dt_make_contig(1), msg_tag, recv_handle);
+	ucp_request_release(request);
 
 	std::cout << "In C: Msg = " << msg << std::endl;
 

@@ -9,8 +9,8 @@
 package org.ucx.jucx;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+
+import org.ucx.jucx.UCPWorker.UCPWorkerAddress;
 
 //import org.accelio.jxio.EventQueueHandler;
 //import org.apache.commons.logging.LogFactory;
@@ -104,6 +104,19 @@ public class Bridge {
 	
 	public static ByteBuffer recvMsgNb(UCPWorker worker, long tag) {
 		return recvMsgNbNative(worker.getNativeID(), tag);
+	}
+	
+	private static native long createEpNative(long workerID, byte[] remoteAddr);
+
+	public static long createEndPoint(UCPWorker worker, UCPWorkerAddress addr) {
+		return createEpNative(worker.getNativeID(), addr.getWorkerAddr());
+	}
+	
+	private static native void sendMsgNbNative(long epID, long tag, ByteBuffer msg);
+
+	public static void sendMsgNb(UCPEndPoint ep, long tag, ByteBuffer msg) {
+		sendMsgNbNative(ep.getNativeID(), tag, msg);
+		
 	}
 	
 //	private static native void closeWorkerNative()

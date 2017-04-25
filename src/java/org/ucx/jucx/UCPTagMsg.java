@@ -4,25 +4,47 @@ import java.nio.ByteBuffer;
 
 public class UCPTagMsg {
 
-	private ByteBuffer msg;
+	private ByteBuffer in;
+	private ByteBuffer out;
 	
-	public UCPTagMsg(UCPWorker worker, long tag) {
-		msg = Bridge.recvMsgNb(worker, tag);
+	private UCPTagMsg(UCPWorker worker, long tag) {
+		in = Bridge.recvMsgNb(worker, tag);
 	}
 	
-	public String getMsg() {
+	private UCPTagMsg(UCPEndPoint ep, long tag, ByteBuffer msg) {
+		out = msg;
+		Bridge.sendMsgNb(ep, tag, msg);
+	}
+	
+	public static UCPTagMsg getInMsg(UCPWorker worker, long tag) {
+		return new UCPTagMsg(worker, tag);
+	}
+	
+	public static UCPTagMsg putOutMsg(UCPEndPoint ep, long tag, ByteBuffer msg) {
+		return new UCPTagMsg(ep, tag, msg);
+	}
+	
+	private String getByteBufferAsString(ByteBuffer buff) {
 		StringBuffer str = new StringBuffer();
 		
-		while (msg.hasRemaining())
-			str.append((char) msg.get());
+		while (buff.hasRemaining())
+			str.append((char) buff.get());
 		
-		msg.rewind();
+		buff.rewind();
 		
 		return str.toString();
 	}
 	
-	public ByteBuffer getBuffer(){
-		return msg;
+	public String getInAsString() {
+		return getByteBufferAsString(in);
 	}
+	
+	public String getOutAsString() {
+		return getByteBufferAsString(out);
+	}
+	
+//	public ByteBuffer getInBuff(){
+//		return msg;
+//	}
 
 }
