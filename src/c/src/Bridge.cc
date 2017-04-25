@@ -178,6 +178,7 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseWorkerNative(JNIEnv *env,
 	ucp_worker_h ucp_worker = (ucp_worker_h)workerID;
 	ucp_address_t* worker_addr = (ucp_address_t*)addrID;
 
+	std::cout << std::endl << "In C: release worker" << std::endl;
 	ucp_worker_print_info(ucp_worker, stdout);
 
     ucp_worker_release_address(ucp_worker, worker_addr);
@@ -195,21 +196,31 @@ JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
 {
 	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
 	ucp_tag_recv_info_t info_tag;
-	ucp_tag_message_h msg_tag;
+	ucp_tag_message_h msg_tag = NULL;
 	ucp_tag_t tag = (ucp_tag_t) jtag;
+	ucp_tag_t mask = -1;
 	jlong tmp;
 	jlong* msg_tag_ptr;
 
+	//TODO
+
+	int cnt = 0;
+
 	do
 	{
+		cnt ++;
 		ucp_worker_progress(ucp_worker);
 
-		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, -1, 1, &info_tag);
+		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, mask, 1, &info_tag);
 	} while (msg_tag == NULL);
+
+	std::cout << "Got msg_tag --> not NULL  " << cnt << std::endl;
 
 	tmp = (jlong)msg_tag;
 	msg_tag_ptr = &tmp;
 	env->SetLongArrayRegion(ret, 0, 1, msg_tag_ptr);
+
+	std::cout << "Info len = " << info_tag.length << std::endl;
 
 	return info_tag.length;
 }
@@ -218,12 +229,15 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
   (JNIEnv *env, jclass cls, jlong workerID, jlong jtagMsg, jobject buff, jint buffSize)
 {
 	char* msg = (char*)(env->GetDirectBufferAddress(buff));
+	char* blah = new char[1024];
 	struct ucx_context* request = NULL;
 	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
 	ucp_tag_message_h msg_tag = (ucp_tag_message_h) jtagMsg;
 
-	request = (struct ucx_context*)ucp_tag_msg_recv_nb(ucp_worker, msg, (size_t)(int)buffSize,
+	request = (struct ucx_context*)ucp_tag_msg_recv_nb(ucp_worker, blah, (size_t)(int)buffSize,
 	                                  ucp_dt_make_contig(1), msg_tag, recv_handle);
+
+	std::cout << "In C: Msg = " << blah << std::endl;
 }
 
 

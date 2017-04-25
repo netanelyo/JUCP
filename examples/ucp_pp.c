@@ -587,6 +587,7 @@ static int pp_run_ucp_client(ucp_worker_h worker) {
     }
 
     msg_size = pp_msg_size + sizeof(*out_msg);
+    printf("In C: msg size = %d\n", msg_size);
     out_msg  = calloc(1, msg_size);
     GOTO_ERR_HANDLER(!out_msg, "UCP Client - calloc()", err_ep);
     cnt 	 = &out_msg->cnt;
