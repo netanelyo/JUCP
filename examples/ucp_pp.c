@@ -596,7 +596,7 @@ static int pp_run_ucp_client(ucp_worker_h worker) {
     out_msg  = calloc(1, msg_size);
 
     char* msg_to_java = calloc(1, pp_msg_size);
-    strcpy(msg_to_java, "C to Java");
+    strcpy(msg_to_java, "Hello from C");
     printf("Msg to send = %s\n", msg_to_java);
     GOTO_ERR_HANDLER(!msg_to_java, "UCP Client - calloc()", err_ep);
     cnt 	 = &out_msg->cnt;

@@ -56,6 +56,20 @@ static void recv_handle(void *request, ucs_status_t status,
 
     context->completed = 1;
 }
+
+static void send_handle(void *request, ucs_status_t status)
+{
+    struct ucx_context *context = (struct ucx_context *) request;
+
+    context->completed = 1;
+}
+
+static void _wait(ucp_worker_h ucp_worker, struct ucx_context *context)
+{
+    while (context->completed == 0) {
+        ucp_worker_progress(ucp_worker);
+    }
+}
 /****************************************
  ****************************************
  ****************************************/
@@ -247,13 +261,67 @@ JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
 
 	request = (struct ucx_context*)ucp_tag_msg_recv_nb(ucp_worker, msg, msg_len,
 	                                  ucp_dt_make_contig(1), msg_tag, recv_handle);
-	ucp_request_release(request);
+    if (UCS_PTR_IS_ERR(request)) {
+        fprintf(stderr, "unable to receive UCX address message (%s)\n",
+                ucs_status_string(UCS_PTR_STATUS(request)));
+        delete[] msg;
+    } else {
+        _wait(ucp_worker, request);
+        request->completed = 0;
+        ucp_request_release(request);
+//        printf("UCX address message was received\n");
+    }
 
 	std::cout << "In C: Msg = " << msg << std::endl;
 
 	return env->NewDirectByteBuffer(msg, msg_len);
 }
 
+
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative
+  (JNIEnv *env, jclass cls, jlong local_worker, jbyteArray remote_addr) {
+	ucp_worker_h ucp_worker = (ucp_worker_h) local_worker;
+	ucs_status_t status;
+
+	jsize len = env->GetArrayLength(remote_addr);
+	ucp_address_t* remote_worker_addr = (ucp_address_t*)calloc(1, len);
+	env->GetByteArrayRegion(remote_addr, 0, len, (jbyte*)remote_worker_addr);
+
+	ucp_ep_params_t ep_params;
+
+    ep_params.field_mask = UCP_EP_PARAM_FIELD_REMOTE_ADDRESS;
+    ep_params.address    = remote_worker_addr;
+
+	ucp_ep_h ep;
+	status = ucp_ep_create(ucp_worker, &ep_params, &ep);
+
+	return (native_ptr) ep;
+}
+
+
+
+JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
+  (JNIEnv *env, jclass cls, jlong jep, jlong jworker, jlong jtag, jobject jmsg, jint len) {
+	ucp_ep_h ep = (ucp_ep_h) jep;
+	struct ucx_context *request = 0;
+	ucp_tag_t tag = (ucp_tag_t) jtag;
+	void* msg = env->GetDirectBufferAddress(jmsg);
+	size_t msg_len = (int)len;
+	ucp_worker_h ucp_worker = (ucp_worker_h) jworker;
+
+
+    request = (struct ucx_context*) ucp_tag_send_nb(ep, msg, msg_len,
+                              ucp_dt_make_contig(1), tag,
+                              send_handle);
+    if (UCS_PTR_IS_ERR(request)) {
+        fprintf(stderr, "unable to send UCX address message\n");
+    } else if (UCS_PTR_STATUS(request) != UCS_OK) {
+//        fprintf(stderr, "UCX address message was scheduled for send\n");
+        _wait(ucp_worker, request);
+        request->completed = 0; /* Reset request state before recycling it */
+        ucp_request_release(request);
+    }
+}
 
 
 

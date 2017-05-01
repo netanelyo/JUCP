@@ -90,6 +90,22 @@ JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
 JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
   (JNIEnv *, jclass, jlong, jlong);
 
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    createEpNative
+ * Signature: (J[B)J
+ */
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative
+  (JNIEnv *, jclass, jlong, jbyteArray);
+
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    sendMsgNbNative
+ * Signature: (JJLjava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
+  (JNIEnv *, jclass, jlong, jlong, jlong, jobject, jint);
+
 }
 
 //class Context;

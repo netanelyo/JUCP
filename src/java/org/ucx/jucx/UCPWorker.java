@@ -1,31 +1,32 @@
 package org.ucx.jucx;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 public class UCPWorker {
 	
-	private static Set<Long> threads = new HashSet<>();
+	private static Map<Long, UCPWorker> threads = new HashMap<>();
 
 	private UCPContext ucpContext;
 	private long nativeID;
-	private final UCPWorkerAddress workerAddr;
+	private final UCPLocalWorkerAddress workerAddr;
 	
 	private UCPWorker(UCPContext ctx) {
 		ucpContext = ctx;
 		nativeID = Bridge.createWorker(ctx.getNativeID());
-		workerAddr = new UCPWorkerAddress(nativeID, false);
+		workerAddr = new UCPLocalWorkerAddress(nativeID);
 	}
 	
 	public static UCPWorker getInstance(UCPContext ctx) {
 		long thID = Thread.currentThread().getId();
-		if (threads.contains(thID)){
+		if (threads.containsKey(thID)){
 			System.out.println("Single worker per thread is allowed");
-			return null;
+			return threads.get(thID);
 		}
 		else {
-			threads.add(thID);
-			return new UCPWorker(ctx);
+			UCPWorker worker = new UCPWorker(ctx);
+			threads.put(thID, worker);
+			return worker;
 		}
 	}
 	
@@ -33,39 +34,29 @@ public class UCPWorker {
 		return nativeID;
 	}
 	
-	public UCPWorkerAddress getAddress() {
+	public UCPLocalWorkerAddress getAddress() {
 		return workerAddr;
 	}
 	
 	// Users should be able to use only address...
-	public final class UCPWorkerAddress {
+	public final class UCPLocalWorkerAddress extends UCPWorkerAddress {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 		
-		private final byte[] workerAddr;
-		private long nativeID;
-		private boolean isRemote;
+		private transient long nativeID;
 		
-		private UCPWorkerAddress(long workerNativeID, boolean rem) {
+		private UCPLocalWorkerAddress(long workerNativeID) {
 			long[] retValue = new long[1];
 			workerAddr = Bridge.getWorkerAddress(workerNativeID, retValue);
 			nativeID = retValue[0];
-			isRemote = rem;
-		}
-		
-		public byte[] getWorkerAddr() {
-			return workerAddr.clone();
 		}
 		
 		public long getNativeID() {
 			return nativeID;
 		}
 		
-		public boolean isRemote() {
-			return isRemote;
-		}
-		
-		public void setRemote(boolean rem) {
-			isRemote = rem;
-		}
 	}
 	
 	public UCPTagMsg recvMessage(long tag) {

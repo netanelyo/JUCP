@@ -10,8 +10,6 @@ package org.ucx.jucx;
 
 import java.nio.ByteBuffer;
 
-import org.ucx.jucx.UCPWorker.UCPWorkerAddress;
-
 //import org.accelio.jxio.EventQueueHandler;
 //import org.apache.commons.logging.LogFactory;
 
@@ -94,6 +92,12 @@ public class Bridge {
 		releaseWorkerNative(worker.getNativeID(), worker.getAddress().getNativeID());
 	}
 	
+	
+	/*
+	 * TODO
+	 * 
+	 * unused...
+	 */
 	private static native int probeAndProgressNative(long worker, long tag, long[] tagMsg);
 	
 	public static int probeAndProgress(UCPWorker worker, long tag, long[] tagMsg) {
@@ -112,11 +116,10 @@ public class Bridge {
 		return createEpNative(worker.getNativeID(), addr.getWorkerAddr());
 	}
 	
-	private static native void sendMsgNbNative(long epID, long tag, ByteBuffer msg);
+	private static native void sendMsgNbNative(long epID, long workerID, long tag, ByteBuffer msg, int msgLength);
 
 	public static void sendMsgNb(UCPEndPoint ep, long tag, ByteBuffer msg) {
-		sendMsgNbNative(ep.getNativeID(), tag, msg);
-		
+		sendMsgNbNative(ep.getNativeID(), ep.getWorker().getNativeID(), tag, msg, msg.capacity());
 	}
 	
 //	private static native void closeWorkerNative()
