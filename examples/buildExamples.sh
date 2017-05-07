@@ -1,3 +1,5 @@
+#!/bin/bash
+
 TOP_DIR="$(cd "$(dirname "$0")"/../"" && pwd)"
 cd $TOP_DIR
 BIN_FOLDER=${BIN_FOLDER:-$TOP_DIR/bin}
