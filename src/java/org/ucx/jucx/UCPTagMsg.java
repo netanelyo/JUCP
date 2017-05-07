@@ -3,20 +3,27 @@ package org.ucx.jucx;
 import java.nio.ByteBuffer;
 
 public class UCPTagMsg {
+	
+	/*
+	 * Ideas:
+	 * 	1. Allocate a ByteBuffer and reuse it (pool?)
+	 * 	2. Request from the user Direct BB
+	 * 	3. For small messages - non-direct might be better
+	 * 	4. 
+	 */
 
-	private ByteBuffer 	in;
-	private ByteBuffer 	out;
+	private ByteBuffer 	msg;
 	private long 		tag;
 	
 	private UCPTagMsg(UCPWorker worker, long tag) {
-		in = Bridge.recvMsgNb(worker, tag);
+		msg = Bridge.recvMsgNb(worker, tag);
 		this.tag = tag;
 	}
 	
 	private UCPTagMsg(UCPEndPoint ep, long tag, ByteBuffer msg) {
-		out = msg;
+		this.msg = msg;
 		this.tag = tag;
-		Bridge.sendMsgNb(ep, tag, out);
+		Bridge.sendMsgNb(ep, tag, this.msg);
 	}
 	
 	public static UCPTagMsg getInMsg(UCPWorker worker, long tag) {
@@ -38,23 +45,12 @@ public class UCPTagMsg {
 		return str.toString();
 	}
 	
-	public String getInAsString() {
-		return getByteBufferAsString(in);
-	}
-	
-	public String getOutAsString() {
-		return getByteBufferAsString(out);
+	public String getMsgAsString() {
+		return getByteBufferAsString(msg);
 	}
 	
 	public long getTag() {
 		return this.tag;
 	}
 	
-//	public ByteBuffer getInBuff(){
-//		return msg;
-//	}
-	
-	
-	
-
 }

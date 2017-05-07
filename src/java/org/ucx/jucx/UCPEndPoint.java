@@ -8,9 +8,9 @@ public class UCPEndPoint {
 	
 	private static Map<Long, UCPEndPoint> workers = new HashMap<>();
 	
-	private long nativeID;
-	private UCPWorker localWorker;
-	private UCPWorkerAddress remoteWorkerAddress;
+	private long 				nativeID;
+	private UCPWorker 			localWorker;
+	private UCPWorkerAddress 	remoteWorkerAddress;
 	
 	public UCPEndPoint(UCPWorker worker, UCPWorkerAddress addr) {
 		localWorker = worker;
@@ -28,15 +28,19 @@ public class UCPEndPoint {
 			return new UCPEndPoint(worker, addr);
 	}
 	
+	/*
+	 * Get ByteBuffer as an arg (overload)
+	 * Check if direct - maybe allocate direct if user sent indirect
+	 */
+	
 	public void sendMessage(byte[] msg, long tag) {
 		ByteBuffer buff = ByteBuffer.allocateDirect(msg.length);
-		buff.put(msg);
-		System.out.println("*********Byte Buffer*********");
-		System.out.println(buff.capacity());
-		System.out.println(buff.hasArray());
-		System.out.println(buff.isDirect());
-		System.out.println("*********Byte Buffer*********");
+		buff.put(msg); //TODO
 		UCPTagMsg tagMsg = UCPTagMsg.putOutMsg(this, tag, buff);
+	}
+	
+	public void sendMessage(ByteBuffer msg, long tag) {
+		
 	}
 	
 	public long getNativeID() {

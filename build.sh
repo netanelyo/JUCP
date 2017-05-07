@@ -23,7 +23,7 @@ else
 fi
 
 ## Clean
-rm -fr $BIN_FOLDER
+rm -fr $BIN_FOLDER/*
 mkdir -p $BIN_FOLDER
 
 ## Build UCX
