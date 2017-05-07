@@ -122,6 +122,12 @@ public class Bridge {
 		sendMsgNbNative(ep.getNativeID(), ep.getWorker().getNativeID(), tag, msg, msg.capacity());
 	}
 	
+	private static native void releaseEndPointNative(long ucpEpID);
+
+	public static void releaseEndPoint(UCPEndPoint ucpEndPoint) {
+				releaseEndPointNative(ucpEndPoint.getNativeID());
+	}
+	
 //	private static native void closeWorkerNative()
 	
 //	private static native int runEventLoopNative(long ptr, long timeOutMicroSec);

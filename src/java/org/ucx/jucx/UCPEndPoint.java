@@ -29,7 +29,13 @@ public class UCPEndPoint {
 	}
 	
 	public void sendMessage(byte[] msg, long tag) {
-		ByteBuffer buff = ByteBuffer.wrap(msg);
+		ByteBuffer buff = ByteBuffer.allocateDirect(msg.length);
+		buff.put(msg);
+		System.out.println("*********Byte Buffer*********");
+		System.out.println(buff.capacity());
+		System.out.println(buff.hasArray());
+		System.out.println(buff.isDirect());
+		System.out.println("*********Byte Buffer*********");
 		UCPTagMsg tagMsg = UCPTagMsg.putOutMsg(this, tag, buff);
 	}
 	
@@ -41,11 +47,7 @@ public class UCPEndPoint {
 		return localWorker;
 	}
 	
-//	public final class UCPRemoteWorkerAddress extends UCPWorkerAddress {
-//		
-//		public UCPRemoteWorkerAddress(byte[] remoteWorkerAddr) {
-//			workerAddr = remoteWorkerAddr;
-//		}
-//	}
-	
+	public void free() {
+		Bridge.releaseEndPoint(this);
+	}
 }

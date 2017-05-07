@@ -20,6 +20,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <cstddef>
 #include <map>
 #include <iostream>
 #include <jni.h>
@@ -105,6 +106,15 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative
  */
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
   (JNIEnv *, jclass, jlong, jlong, jlong, jobject, jint);
+
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    releaseEndPointNative
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseEndPointNative
+  (JNIEnv *, jclass, jlong);
+
 
 }
 

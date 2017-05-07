@@ -255,7 +255,8 @@ JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
 
 	msg_len = info_tag.length;
 //	char* msg = (char*)(env->GetDirectBufferAddress(buff));
-	char* msg = new char[msg_len];
+	char* msg = new char[msg_len + 1];
+	msg[msg_len] = '\0';
 
 	struct ucx_context* request = NULL;
 
@@ -306,9 +307,14 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
 	struct ucx_context *request = 0;
 	ucp_tag_t tag = (ucp_tag_t) jtag;
 	void* msg = env->GetDirectBufferAddress(jmsg);
+	if (msg == NULL){
+		std::cout << "msg is null" << std::endl;
+	}
 	size_t msg_len = (int)len;
 	ucp_worker_h ucp_worker = (ucp_worker_h) jworker;
 
+	std::cout << "In sendMsgNbNative()" <<std::endl;
+	std::cout << "jep = " << (native_ptr) jep << "\tjworker = " << (native_ptr) jworker << std::endl;
 
     request = (struct ucx_context*) ucp_tag_send_nb(ep, msg, msg_len,
                               ucp_dt_make_contig(1), tag,
@@ -321,6 +327,11 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
         request->completed = 0; /* Reset request state before recycling it */
         ucp_request_release(request);
     }
+}
+
+JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseEndPointNative
+  (JNIEnv *env, jclass cls, jlong jep) {
+	ucp_ep_destroy((ucp_ep_h) jep);
 }
 
 

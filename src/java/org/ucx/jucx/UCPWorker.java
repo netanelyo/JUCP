@@ -9,12 +9,12 @@ public class UCPWorker {
 
 	private UCPContext ucpContext;
 	private long nativeID;
-	private final UCPLocalWorkerAddress workerAddr;
+	private final UCPWorkerAddress workerAddr;
 	
 	private UCPWorker(UCPContext ctx) {
 		ucpContext = ctx;
 		nativeID = Bridge.createWorker(ctx.getNativeID());
-		workerAddr = new UCPLocalWorkerAddress(nativeID);
+		workerAddr = new UCPWorkerAddress(nativeID);
 	}
 	
 	public static UCPWorker getInstance(UCPContext ctx) {
@@ -34,34 +34,17 @@ public class UCPWorker {
 		return nativeID;
 	}
 	
-	public UCPLocalWorkerAddress getAddress() {
+	public UCPWorkerAddress getAddress() {
 		return workerAddr;
-	}
-	
-	// Users should be able to use only address...
-	public final class UCPLocalWorkerAddress extends UCPWorkerAddress {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-		
-		private transient long nativeID;
-		
-		private UCPLocalWorkerAddress(long workerNativeID) {
-			long[] retValue = new long[1];
-			workerAddr = Bridge.getWorkerAddress(workerNativeID, retValue);
-			nativeID = retValue[0];
-		}
-		
-		public long getNativeID() {
-			return nativeID;
-		}
-		
 	}
 	
 	public UCPTagMsg recvMessage(long tag) {
 		UCPTagMsg msg = UCPTagMsg.getInMsg(this, tag);
 		return msg;
+	}
+	
+	public void free() {
+		Bridge.releaseWorker(this);
 	}
 	
 }
