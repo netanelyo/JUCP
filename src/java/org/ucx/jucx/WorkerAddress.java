@@ -2,7 +2,7 @@ package org.ucx.jucx;
 
 import java.io.Serializable;
 
-public final class UCPWorkerAddress implements Serializable {
+public final class WorkerAddress implements Serializable {
 	/**
 	 * TODO
 	 */
@@ -15,10 +15,15 @@ public final class UCPWorkerAddress implements Serializable {
 		return workerAddr.clone();
 	}
 	
-	UCPWorkerAddress(long workerNativeID) {
+	WorkerAddress(long workerNativeID) {
 		long[] retValue = new long[1];
 		workerAddr = Bridge.getWorkerAddress(workerNativeID, retValue);
 		nativeID = retValue[0];
+	}
+	
+	WorkerAddress(byte[] addr) {
+		nativeID = -1;
+		workerAddr = addr;
 	}
 
 	long getNativeID() {

@@ -36,7 +36,7 @@ extern "C" {
  * Signature: (Lorg/ucx/jucx/UCPParams;)J
  */
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative
-  (JNIEnv *, jclass, jobject);
+(JNIEnv *, jclass, jobject);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -44,7 +44,7 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_closeCtxNative
-  (JNIEnv *, jclass, jlong);
+(JNIEnv *, jclass, jlong);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -52,7 +52,7 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_closeCtxNative
  * Signature: (J)J
  */
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createWorkerNative
-  (JNIEnv *, jclass, jlong);
+(JNIEnv *, jclass, jlong, jobject);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -60,7 +60,7 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createWorkerNative
  * Signature: (J[J)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_org_ucx_jucx_Bridge_getWorkerAddressNative
-  (JNIEnv *, jclass, jlong, jlongArray);
+(JNIEnv *, jclass, jlong, jlongArray);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -68,12 +68,11 @@ JNIEXPORT jbyteArray JNICALL Java_org_ucx_jucx_Bridge_getWorkerAddressNative
  * Signature: (JJ)V
  */
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseWorkerNative
-  (JNIEnv *, jclass, jlong, jlong);
-
+(JNIEnv *, jclass, jlong, jlong);
 
 //TODO
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_testerNative
-  (JNIEnv *, jclass, jbyteArray, jlong);
+(JNIEnv *, jclass, jbyteArray, jlong);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -81,7 +80,7 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_testerNative
  * Signature: (JJ[J)I
  */
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
-  (JNIEnv *, jclass, jlong, jlong, jlongArray);
+(JNIEnv *, jclass, jlong, jlong, jlongArray);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -89,7 +88,7 @@ JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
  * Signature: (JJ)Ljava/nio/ByteBuffer;
  */
 JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
-  (JNIEnv *, jclass, jlong, jlong);
+(JNIEnv *, jclass, jlong, jlong);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -97,15 +96,16 @@ JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
  * Signature: (J[B)J
  */
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative
-  (JNIEnv *, jclass, jlong, jbyteArray);
+(JNIEnv *, jclass, jlong, jbyteArray);
 
 /*
  * Class:     org_ucx_jucx_Bridge
- * Method:    sendMsgNbNative
- * Signature: (JJLjava/nio/ByteBuffer;)V
+ * Method:    sendMsgNative
+ * Signature: (JJJLjava/lang/Object;IZZJ)I
  */
-JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
-  (JNIEnv *, jclass, jlong, jlong, jlong, jobject, jint);
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_sendMsgNative
+  (JNIEnv *, jclass, jlong, jlong, jlong, jobject, jint, jboolean, jboolean, jlong);
+
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -113,8 +113,15 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseEndPointNative
-  (JNIEnv *, jclass, jlong);
+(JNIEnv *, jclass, jlong);
 
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    progressWorkerNative
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_progressWorkerNative
+  (JNIEnv *, jclass, jlong, jint);
 
 }
 

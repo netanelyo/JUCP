@@ -1,15 +1,18 @@
 package org.ucx.jucx.examples;
 
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 import org.ucx.jucx.UCPConstants;
-import org.ucx.jucx.UCPContext;
+import org.ucx.jucx.Context;
+import org.ucx.jucx.EndPoint;
 import org.ucx.jucx.UCPParams;
-import org.ucx.jucx.UCPTagMsg;
-import org.ucx.jucx.UCPWorker;
-import org.ucx.jucx.UCPWorkerAddress;
+import org.ucx.jucx.TagMsg;
+import org.ucx.jucx.Worker;
+import org.ucx.jucx.WorkerAddress;
 
 public class UCPServer {
 
@@ -31,9 +34,9 @@ public class UCPServer {
 		long mask = UCPConstants.UCPParamsField.UCP_PARAM_FIELD_FEATURES;
 
 		UCPParams params = new UCPParams(feats, 0, mask);
-		UCPContext ctx = UCPContext.getInstance(params);
+		Context ctx = Context.getInstance(params);
 
-		UCPWorker worker = UCPWorker.getInstance(ctx);
+		Worker worker = Worker.getInstance(ctx);
 
 		ServerSocket servSock = new ServerSocket(12345);
 		servSock.setReuseAddress(true);
@@ -41,16 +44,31 @@ public class UCPServer {
 		System.out.println("Waiting for connections....");
 		Socket sock = servSock.accept();
 
-		UCPWorkerAddress workerAddr = worker.getAddress();
+		WorkerAddress workerAddr = worker.getAddress();
 
 		ObjectOutputStream outStream = new ObjectOutputStream(sock.getOutputStream());
 		outStream.writeObject(workerAddr);
 		Thread.sleep(1000);
 
 		System.out.println("Sent UCP Address");
+		
+		ObjectInputStream inStream = new ObjectInputStream(sock.getInputStream());
+		WorkerAddress remoteWorkerAddr = (WorkerAddress) inStream.readObject();
 
-		UCPTagMsg msg = worker.recvMessage(Long.parseUnsignedLong("a2b9c5d9e2f", 16));
-		System.out.println("In Java: " + msg.getMsgAsString());
+		EndPoint ep = EndPoint.getInstance(worker, remoteWorkerAddr);
+		
+		ByteBuffer out = ByteBuffer.allocateDirect(100);
+		long tag = Long.parseUnsignedLong("a2b9c5d9e2f", 16);
+		TagMsg msg;
+		
+		for (int i = 0; i < 1000; i++) {
+			msg = worker.recvMessage(tag);
+			
+			out.putInt(i);
+			ep.sendMessage(out, tag);
+			if (!out.hasRemaining())
+				out.rewind();
+		}
 
 		servSock.close();
 		sock.close();

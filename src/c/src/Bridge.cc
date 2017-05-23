@@ -22,6 +22,8 @@
 //#include "Utils.h"
 //#include "MsgPool.h"
 #include "Bridge.h"
+#include "Worker.h"
+#include "RequestHandler.h"
 
 //static jclass cls;
 //static JavaVM *cached_jvm;
@@ -34,45 +36,6 @@
 //static jfieldID fidError;
 //static jmethodID jmethodID_logToJava; // handle to java cb method
 //static jmethodID jmethodID_requestForBoundMsgPool;
-
-
-/****************************************
- * 		Taken from ucp_hello_world.c	*
- ****************************************/
-struct ucx_context {
-	int completed;
-};
-
-static void request_init(void *request)
-{
-    struct ucx_context *ctx = (struct ucx_context *) request;
-    ctx->completed = 0;
-}
-
-static void recv_handle(void *request, ucs_status_t status,
-                        ucp_tag_recv_info_t *info)
-{
-    struct ucx_context *context = (struct ucx_context *) request;
-
-    context->completed = 1;
-}
-
-static void send_handle(void *request, ucs_status_t status)
-{
-    struct ucx_context *context = (struct ucx_context *) request;
-
-    context->completed = 1;
-}
-
-static void _wait(ucp_worker_h ucp_worker, struct ucx_context *context)
-{
-    while (context->completed == 0) {
-        ucp_worker_progress(ucp_worker);
-    }
-}
-/****************************************
- ****************************************
- ****************************************/
 
 
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative(JNIEnv *env,
@@ -94,8 +57,8 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative(JNIEnv *env,
 
 	/* UCP initialization */
 	status = ucp_config_read(NULL, NULL, &config);
-    if (status != UCS_OK)
-    	std::cout << "Error: ucp_config_read()" << std::endl;
+	if (status != UCS_OK)
+		std::cout << "Error: ucp_config_read()" << std::endl;
 
 	params_native = env->GetObjectClass(params);
 
@@ -105,8 +68,8 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative(JNIEnv *env,
 	fid = env->GetFieldID(params_native, "fieldMask", "J");
 	ucp_params.field_mask = env->GetLongField(params, fid);
 
-    ucp_params.request_size    = sizeof(struct ucx_context);
-    ucp_params.request_init    = request_init;
+	ucp_params.request_size = sizeof(Request);
+	ucp_params.request_init = RequestHandler::requestInit;
 
 	status = ucp_init(&ucp_params, config, &ucp_context);
 
@@ -121,29 +84,35 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_closeCtxNative(JNIEnv *env, jcla
 	ucp_cleanup((ucp_context_h) ptrCtx);
 }
 
-JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createWorkerNative(JNIEnv *env, jclass cls,
-																		jlong ptrCtx)
-{
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createWorkerNative(JNIEnv *env,
+		jclass cls, jlong ptrCtx, jobject compBuff) {
 	ucp_context_h ucp_context = (ucp_context_h) ptrCtx;
 	ucp_worker_params_t worker_params = { 0 };
-	ucp_worker_h ucp_worker;
+	Worker* ucp_worker;
 	ucs_status_t status;
+	void* tmp;
+	uint64_t cap;
 
-    worker_params.field_mask  = UCP_WORKER_PARAM_FIELD_THREAD_MODE;
-    worker_params.thread_mode = UCS_THREAD_MODE_SINGLE;
+	worker_params.field_mask = UCP_WORKER_PARAM_FIELD_THREAD_MODE;
+	worker_params.thread_mode = UCS_THREAD_MODE_SINGLE;
 
-    status = ucp_worker_create(ucp_context, &worker_params, &ucp_worker);
-    if (status != UCS_OK)
-    	std::cout << "Error: ucp_worker_create()" << std::endl;
+	tmp = env->GetDirectBufferAddress(compBuff);
+	if (!tmp) {
+		std::cout << "Error: Failed to extract direct ByteBuffer address" << std::endl;
+		return -1;
+	}
 
-    return (native_ptr)ucp_worker;
+	cap = (uint64_t) env->GetDirectBufferCapacity(compBuff);
+
+	ucp_worker = new Worker(ucp_context, worker_params, tmp, cap);
+
+	return (native_ptr) ucp_worker;
 }
 
-JNIEXPORT jbyteArray JNICALL Java_org_ucx_jucx_Bridge_getWorkerAddressNative(JNIEnv *env,
-																jclass cls, jlong workerID, jlongArray addrID)
-{
+JNIEXPORT jbyteArray JNICALL Java_org_ucx_jucx_Bridge_getWorkerAddressNative
+		(JNIEnv *env, jclass cls, jlong workerID, jlongArray addrID) {
 	ucs_status_t status;
-	ucp_worker_h ucp_worker = (ucp_worker_h)workerID;
+	Worker* ucp_worker = (Worker*) workerID;
 	ucp_address_t* local_addr;
 	size_t local_addr_len;
 	jbyteArray ret;
@@ -151,42 +120,34 @@ JNIEXPORT jbyteArray JNICALL Java_org_ucx_jucx_Bridge_getWorkerAddressNative(JNI
 	jlong* addr_ptr;
 	jbyte* local_addr_wrap;
 
-    status = ucp_worker_get_address(ucp_worker, &local_addr, &local_addr_len);
-    if (status != UCS_OK)
-        	std::cout << "Error: ucp_worker_get_address()" << std::endl;
+	local_addr = ucp_worker->initWorkerAddress(local_addr_len);
 
-    local_addr_wrap = new jbyte[local_addr_len];
-    memcpy(local_addr_wrap, local_addr, local_addr_len);
+	local_addr_wrap = new jbyte[local_addr_len];
+	memcpy(local_addr_wrap, local_addr, local_addr_len);
 
-    ret = env->NewByteArray(local_addr_len);
-    env->SetByteArrayRegion(ret, 0, local_addr_len, local_addr_wrap);
+	ret = env->NewByteArray(local_addr_len);
+	env->SetByteArrayRegion(ret, 0, local_addr_len, local_addr_wrap);
 
-    tmp = (jlong)local_addr;
-    addr_ptr = (jlong *) &tmp;
-    env->SetLongArrayRegion(addrID, 0, 1, addr_ptr);
+	tmp = (jlong) local_addr;
+	addr_ptr = (jlong *) &tmp;
+	env->SetLongArrayRegion(addrID, 0, 1, addr_ptr);
 
-    return ret;
+	return ret;
 }
 
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseWorkerNative(JNIEnv *env, jclass cls,
-																	jlong workerID, jlong addrID) {
-	ucp_worker_h ucp_worker = (ucp_worker_h)workerID;
-	ucp_address_t* worker_addr = (ucp_address_t*)addrID;
-
-    ucp_worker_release_address(ucp_worker, worker_addr);
-
-    ucp_worker_destroy(ucp_worker);
+		jlong workerID, jlong addrID) {
+	Worker* ucp_worker = (Worker*) workerID;
+	delete ucp_worker;
 }
 
-JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_testerNative
-  (JNIEnv *env, jclass cls, jbyteArray jArr, jlong nativeID) {
-	std::cout << "Compare = " << memcmp(jArr, (ucp_address_t*)nativeID, env->GetArrayLength(jArr)) << std::endl;
-}
+//JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_testerNative
+//(JNIEnv *env, jclass cls, jbyteArray jArr, jlong nativeID) {
+//	std::cout << "Compare = " << memcmp(jArr, (ucp_address_t*)nativeID, env->GetArrayLength(jArr)) << std::endl;
+//}
 
-
-JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
-  (JNIEnv *env, jclass cls, jlong workerID, jlong jtag, jlongArray ret)
-{
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative(
+		JNIEnv *env, jclass cls, jlong workerID, jlong jtag, jlongArray ret) {
 	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
 	ucp_tag_recv_info_t info_tag;
 	ucp_tag_t tag = (ucp_tag_t) jtag;
@@ -195,23 +156,21 @@ JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative
 	jlong* msg_tag_ptr;
 	ucp_tag_message_h msg_tag = NULL;
 
-	do
-	{
+	do {
 		ucp_worker_progress(ucp_worker);
 
 		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, mask, 1, &info_tag);
-	} while (msg_tag == NULL);
+	} while (!msg_tag);
 
-	tmp = (jlong)msg_tag;
+	tmp = (jlong) msg_tag;
 	msg_tag_ptr = &tmp;
 	env->SetLongArrayRegion(ret, 0, 1, msg_tag_ptr);
 
 	return info_tag.length;
 }
 
-JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
-  (JNIEnv *env, jclass cls, jlong workerID, jlong jtag)
-{
+JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative(JNIEnv *env,
+		jclass cls, jlong workerID, jlong jtag) {
 
 	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
 	ucp_tag_recv_info_t info_tag;
@@ -220,99 +179,123 @@ JNIEXPORT jobject JNICALL Java_org_ucx_jucx_Bridge_recvMsgNbNative
 	ucp_tag_message_h msg_tag = NULL;
 	size_t msg_len = 0;
 
-	do
-	{
+	do {
 		ucp_worker_progress(ucp_worker);
 
 		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, mask, 1, &info_tag);
 
-	} while (msg_tag == NULL);
+	} while (!msg_tag);
 
 	msg_len = info_tag.length;
 	char* msg = new char[msg_len + 1];
 	msg[msg_len] = '\0';
 
-	struct ucx_context* request = NULL;
+	Request* request = NULL;
 
-	request = (struct ucx_context*)ucp_tag_msg_recv_nb(ucp_worker, msg, msg_len,
-	                                  ucp_dt_make_contig(1), msg_tag, recv_handle);
-    if (UCS_PTR_IS_ERR(request)) {
-        fprintf(stderr, "unable to receive UCX address message (%s)\n",
-                ucs_status_string(UCS_PTR_STATUS(request)));
-        delete[] msg;
-    } else {
-        _wait(ucp_worker, request);
-        request->completed = 0;
-        ucp_request_release(request);
-    }
+	request = (Request*) ucp_tag_msg_recv_nb(ucp_worker, msg,
+			msg_len, ucp_dt_make_contig(1), msg_tag, RequestHandler::recvRequestHandler);
+	if (UCS_PTR_IS_ERR(request)) {
+		fprintf(stderr, "unable to receive UCX address message (%s)\n",
+				ucs_status_string(UCS_PTR_STATUS(request)));
+		delete[] msg;
+	} else {
+//		_wait(ucp_worker, request);
+		request->requestID = 0;
+		ucp_request_release(request);
+	}
 
 	return env->NewDirectByteBuffer(msg, msg_len);
 }
 
-
-JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative
-  (JNIEnv *env, jclass cls, jlong local_worker, jbyteArray remote_addr) {
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative(JNIEnv *env,
+		jclass cls, jlong local_worker, jbyteArray remote_addr) {
 	ucp_worker_h ucp_worker = (ucp_worker_h) local_worker;
 	ucs_status_t status;
 
 	jsize len = env->GetArrayLength(remote_addr);
-	ucp_address_t* remote_worker_addr = (ucp_address_t*)calloc(1, len);
-	env->GetByteArrayRegion(remote_addr, 0, len, (jbyte*)remote_worker_addr);
+	ucp_address_t* remote_worker_addr = (ucp_address_t*) calloc(1, len);
+	env->GetByteArrayRegion(remote_addr, 0, len, (jbyte*) remote_worker_addr);
 
 	ucp_ep_params_t ep_params;
 
-    ep_params.field_mask = UCP_EP_PARAM_FIELD_REMOTE_ADDRESS;
-    ep_params.address    = remote_worker_addr;
+	ep_params.field_mask = UCP_EP_PARAM_FIELD_REMOTE_ADDRESS;
+	ep_params.address = remote_worker_addr;
 
 	ucp_ep_h ep;
 	status = ucp_ep_create(ucp_worker, &ep_params, &ep);
-    if (status != UCS_OK)
-    	std::cout << "Error: ucp_ep_create()" << std::endl;
+	if (status != UCS_OK)
+		std::cout << "Error: ucp_ep_create()" << std::endl;
 
 	return (native_ptr) ep;
 }
 
-
-
-JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_sendMsgNbNative
-  (JNIEnv *env, jclass cls, jlong jep, jlong jworker, jlong jtag, jobject jmsg, jint len) {
+/**
+ * TODO
+ */
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_sendMsgNative(JNIEnv *env,
+		jclass cls, jlong jep, jlong jworker, jlong jtag, jobject jmsg,
+		jint len, jboolean sync, jboolean direct, jlong reqId) {
 	ucp_ep_h ep = (ucp_ep_h) jep;
-	struct ucx_context *request = 0;
+	Request* request = 0;
 	ucp_tag_t tag = (ucp_tag_t) jtag;
-	void* msg = env->GetDirectBufferAddress(jmsg);
-	if (msg == NULL){
-		std::cout << "msg is null" << std::endl;
-	}
-	size_t msg_len = (int)len;
-	ucp_worker_h ucp_worker = (ucp_worker_h) jworker;
+	int msg_len = (int) len;
+	Worker* ucp_worker = (Worker*) jworker;
+	void* msg;
+	int ret;
 
-    request = (struct ucx_context*) ucp_tag_send_nb(ep, msg, msg_len,
-                              ucp_dt_make_contig(1), tag,
-                              send_handle);
-    if (UCS_PTR_IS_ERR(request)) {
-        fprintf(stderr, "unable to send UCX address message\n");
-    } else if (UCS_PTR_STATUS(request) != UCS_OK) {
-        _wait(ucp_worker, request);
-        request->completed = 0; /* Reset request state before recycling it */
-        ucp_request_release(request);
-    }
+	if (direct) {
+		msg = env->GetDirectBufferAddress(jmsg);
+		if (!msg) {
+			std::cout << "Error: msg is null" << std::endl;
+			return -1;
+		}
+	} else {
+		msg = calloc(1, msg_len);
+		if (!msg) {
+			std::cout << "Error: allocation failure" << std::endl;
+			return -1;
+		}
+		env->GetByteArrayRegion((jbyteArray) jmsg, 0, msg_len, (jbyte*) msg);
+	}
+
+	request = (Request*) ucp_tag_send_nb(ep, msg, msg_len,
+			ucp_dt_make_contig(1), tag, RequestHandler::sendRequestHandler);
+	if (UCS_PTR_IS_ERR(request)) {
+		fprintf(stderr, "unable to send UCX address message\n");
+		return -1; // An error occurred
+	}
+	else if (UCS_PTR_STATUS(request) != UCS_OK) {
+		if (sync) {
+			ucp_worker->workerWait();
+		}
+		else {
+			// Async handling - request still in progress
+			request->requestID = reqId;
+			request->worker = ucp_worker;
+		}
+	}
+	else {
+		// Sent successfully
+		ucp_worker->putInEventQueue(reqId);
+	}
+
+	return ucp_worker->getEventCnt();
 }
 
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseEndPointNative
-  (JNIEnv *env, jclass cls, jlong jep) {
+(JNIEnv *env, jclass cls, jlong jep) {
 	ucp_ep_h ep = (ucp_ep_h) jep;
 	ucp_ep_destroy(ep);
 }
 
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_progressWorkerNative
+  (JNIEnv *env, jclass cls, jlong jworker, jint max) {
+	int maxEvents = (int) max;
+	Worker* worker = (Worker*) jworker;
 
+	while (worker->getEventCnt() < maxEvents)
+		ucp_worker_progress(worker->getUcpWorker());
 
-
-
-
-
-
-
-
-
-
+	return worker->getEventCnt();
+}
 

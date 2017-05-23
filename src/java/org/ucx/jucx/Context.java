@@ -1,21 +1,21 @@
 package org.ucx.jucx;
 
-public class UCPContext {
+public class Context {
 	
-	// Singleton - in order to enforce the one per process demand
-	private static UCPContext ctxInstance = null;
+	// Singleton - in order to enforce the one per process suggestion
+	private static Context ctxInstance = null;
 	
 	public UCPParams params;
 	private long nativeID;
 	
-	private UCPContext(UCPParams params) {
+	private Context(UCPParams params) {
 		this.params = params;
 		nativeID = Bridge.createCtx(params);
 	}
 	
-	public static UCPContext getInstance(UCPParams params) {
+	public static Context getInstance(UCPParams params) {
 		if (ctxInstance == null) {
-			ctxInstance = new UCPContext(params);
+			ctxInstance = new Context(params);
 		}
 		
 		return ctxInstance;

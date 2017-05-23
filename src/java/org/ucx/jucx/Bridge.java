@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 //import org.apache.commons.logging.LogFactory;
 
 public class Bridge {
-
+	
 	// private static final Log LogFromNative =
 	// LogFactory.getLog("LogFromNative");
 	// private static final Log LOGBridge = LogFactory.getLog(Bridge.class
@@ -49,10 +49,10 @@ public class Bridge {
 		// Bridge.mapIdEQHObject.remove(ptrCtx);
 	}
 
-	private static native long createWorkerNative(long ctxID);
+	private static native long createWorkerNative(long ctxID, ByteBuffer compBuff);
 
-	static long createWorker(long ctxID) {
-		return createWorkerNative(ctxID);
+	static long createWorker(long ctxID, ByteBuffer completionBuff) {
+		return createWorkerNative(ctxID, completionBuff);
 	}
 
 	static native void testerNative(byte[] arr, long id);
@@ -65,7 +65,7 @@ public class Bridge {
 
 	private static native void releaseWorkerNative(long workerID, long workerAddrID);
 
-	static void releaseWorker(UCPWorker worker) {
+	static void releaseWorker(Worker worker) {
 		releaseWorkerNative(worker.getNativeID(), worker.getAddress().getNativeID());
 	}
 
@@ -76,31 +76,40 @@ public class Bridge {
 	 */
 	private static native int probeAndProgressNative(long worker, long tag, long[] tagMsg);
 
-	static int probeAndProgress(UCPWorker worker, long tag, long[] tagMsg) {
+	static int probeAndProgress(Worker worker, long tag, long[] tagMsg) {
 		return probeAndProgressNative(worker.getNativeID(), tag, tagMsg);
 	}
 
 	private static native ByteBuffer recvMsgNbNative(long workerID, long tag);
 
-	static ByteBuffer recvMsgNb(UCPWorker worker, long tag) {
+	static ByteBuffer recvMsgNb(Worker worker, long tag) {
 		return recvMsgNbNative(worker.getNativeID(), tag);
 	}
 
 	private static native long createEpNative(long workerID, byte[] remoteAddr);
 
-	static long createEndPoint(UCPWorker worker, UCPWorkerAddress addr) {
+	static long createEndPoint(Worker worker, WorkerAddress addr) {
 		return createEpNative(worker.getNativeID(), addr.getWorkerAddr());
 	}
 
-	private static native void sendMsgNbNative(long epID, long workerID, long tag, ByteBuffer msg, int msgLength);
-
-	static void sendMsgNb(UCPEndPoint ep, long tag, ByteBuffer msg) {
-		sendMsgNbNative(ep.getNativeID(), ep.getWorker().getNativeID(), tag, msg, msg.capacity());
+	private static native int sendMsgNative(long epID, long workerID, long tag, Object msg,
+											int msgLength, boolean sync, boolean direct, long reqID);
+	
+	static int sendMsg(EndPoint ep, TagMsg msg, boolean sync, boolean direct, long reqID) {
+		return sendMsgNative(ep.getNativeID(), ep.getWorker().getNativeID(),
+						msg.getTag(), msg.getBuffer(), msg.getCapacity(), sync, direct, reqID);
 	}
+	
+	private static native void releaseEndPointNative(long epID);
 
-	private static native void releaseEndPointNative(long ucpEpID);
-
-	static void releaseEndPoint(UCPEndPoint ucpEndPoint) {
+	static void releaseEndPoint(EndPoint ucpEndPoint) {
 		releaseEndPointNative(ucpEndPoint.getNativeID());
 	}
+
+	private static native int progressWorkerNative(long workerID, int maxEvents);
+	
+	static int progressWorker(Worker ucpWorker, int maxEvents) {
+		return progressWorkerNative(ucpWorker.getNativeID(), maxEvents);
+	}
+
 }

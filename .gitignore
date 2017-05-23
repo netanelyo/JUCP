@@ -40,6 +40,7 @@ m4/
 .cproject
 .project
 .classpath
+.settings
 
 # Java class
 *.class
