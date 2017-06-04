@@ -1,23 +1,27 @@
 package org.ucx.jucx;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Worker {
-	/*
-	 * TODO: find a better place
-	 */
-	private static int REQUEST_ERROR 	= -1;
-	private static int REQUEST_PENDING 	= 0;
-	private static int REQUEST_COMPLETE = 1;
-//	private static Map<Long, Worker> threads = new HashMap<>();
+	private final static int REQUEST_ERROR 		= -1;
+	private final static int REQUEST_PENDING 	= 0;
+	private final static int REQUEST_COMPLETE 	= 1;
+	
+	private final static long DEFAULT_TAG_MASK 	= -1L;
+	private final static long DEFAULT_TAG		= -1L;
+	
+	private static AtomicInteger OUTSTANDING_REQUESTS = new AtomicInteger(0);
+	private Object mutex = new Object();
+	
+	// package visibility for EndPoint usage
+	final static long DEFAULT_REQ_ID 	= 0;
 
 	private Context ucpContext;
 	private long nativeID;
 	private CompletionQueue compQueue;
-	private final WorkerAddress workerAddr;
-	private final Callbacks callback;
+	private WorkerAddress workerAddr;
+	private Callbacks callback;
 	
 	
 	public Worker(Context ctx, Callbacks cb) {
@@ -28,39 +32,46 @@ public class Worker {
 		workerAddr = new WorkerAddress(nativeID);
 	}
 	
-//	public static Worker getInstance(Context ctx, Callbacks cb) {
-//		long thID = Thread.currentThread().getId();
-//		if (threads.containsKey(thID)){
-//			System.out.println("Single worker per thread is allowed");
-//			return threads.get(thID);
+	
+//	public void progress(/* int minEvents, int maxEvents, int timeOutMSec*/) {
+//		compQueue.completionBuff.rewind();
+//		int cnt = compQueue.completionCnt;
+//		int maxEv = maxEvents;
+//		int maxPossible = Math.min(OUTSTANDING_REQUESTS, compQueue.completionCap);
+//		
+//		// Max processed requests bounded by num of outstanding requests and capacity of buffer
+//		if (maxEvents > maxPossible) {
+//			maxEv = maxPossible;
 //		}
-//		else {
-//			Worker worker = new Worker(ctx, cb);
-//			threads.put(thID, worker);
-//			return worker;
+//		
+//		while (cnt < maxEv) {
+//				cnt += Bridge.progressWorker(this, maxEv);
 //		}
+//		
+//		for (int i = 0; i < maxEv; i++) {
+//			callback.requestHandle(compQueue.completionBuff.getLong());
+//			cnt--;
+//		}
+//		compQueue.completionBuff.compact(); // Compacting buffer (removing all read events)
+//
+//		OUTSTANDING_REQUESTS -= maxEv;
+//		compQueue.completionCnt = cnt;
 //	}
 	
-	
-	
-	/*
-	 * can get stuck in infinite loop...
-	 */
-	public void progress(int maxEvents) {
-		compQueue.completionBuff.rewind();
-		int cnt = compQueue.completionCnt;
-		while (cnt < maxEvents) {
-				cnt += Bridge.progressWorker(this, maxEvents);
-		}
-		for (int i = 0; i < maxEvents; i++) {
-			callback.requestHandle(compQueue.completionBuff.getLong());
-			cnt--;
-		}
-		compQueue.completionCnt = cnt;
-	}
-	
+//	/**
+//	 * Check for next events
+//	 */
 	public void progress() {
-		progress(1);
+		compQueue.completionBuff.rewind();
+		int numOfEvents;
+		
+		synchronized (mutex)
+		{
+			numOfEvents = Bridge.progressWorker(this);
+		}
+		
+		for (int i = 0; i < numOfEvents; i++)
+			callback.requestHandle(compQueue.completionBuff.getLong());
 	}
 	
 	public long getNativeID() {
@@ -71,9 +82,79 @@ public class Worker {
 		return workerAddr;
 	}
 	
-	public TagMsg recvMessage(long tag) {
-		TagMsg msg = TagMsg.getInMsg(this, tag);
-		return msg;
+	private void checkRequestReturnStatus(int rc) {
+		switch (rc)
+		{
+		case REQUEST_ERROR:
+			
+			break;
+			
+		case REQUEST_PENDING:
+			
+			break;
+			
+		default:
+			break;
+		}
+	}
+	
+	int sendMessage(EndPoint ep, long tag, ByteBuffer msg, int msgLen, long reqID) {
+		int sent = 0;
+		OUTSTANDING_REQUESTS.incrementAndGet();
+		
+		synchronized (mutex)
+		{
+			if (msg.isDirect()) {
+				sent = Bridge.sendMsgAsync(ep, tag, msg, msgLen, reqID);
+			}
+			else {
+				sent = Bridge.sendMsgAsync(ep, tag, msg.array(), msgLen, reqID);
+			}
+		}
+		
+		checkRequestReturnStatus(sent);
+		
+		return sent;
+	}
+	
+	private int recvMessage(long tag, long tagMask, ByteBuffer msg, int msgLen, long reqID) {
+		int rcvd = 0;
+		OUTSTANDING_REQUESTS.incrementAndGet();
+		
+		synchronized (mutex)
+		{
+			if (msg.isDirect()) {
+				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg, msgLen, reqID);
+			}
+			else {
+				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg.array(), msgLen, reqID);
+			}
+		}
+		
+		checkRequestReturnStatus(rcvd);
+		
+		return rcvd;
+	}
+	
+	public int recvMessageAsync(long tag, long tagMask, ByteBuffer msg, int msgLen, long reqID) {
+		int cnt = recvMessage(tag, tagMask, msg, msgLen, reqID);
+		setCounter(cnt);
+		return cnt;
+	}
+	
+	// dontcare msg tag
+	public int recvMessageAsync(ByteBuffer msg, int msgLen, long reqID) {
+		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, msg, msgLen, reqID);
+	}
+	
+	// dontcare request id
+	public int recvMessageAsync(long tag, long tagMask, ByteBuffer msg, int msgLen) {
+		return recvMessageAsync(tag, tagMask, msg, msgLen, DEFAULT_REQ_ID);
+	}
+	
+	// dontcare reqID and msg tag
+	public int recvMessageAsync(ByteBuffer msg, int msgLen) {
+		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, msg, msgLen, DEFAULT_REQ_ID);
 	}
 	
 	public void free() {
@@ -86,10 +167,12 @@ public class Worker {
 	
 	private class CompletionQueue {
 		private int			completionCnt;
+		private int			completionCap;
 		private ByteBuffer 	completionBuff;
 		
 		private CompletionQueue(int capacity) {
 			completionCnt 	= 0;
+			completionCap 	= capacity;
 			completionBuff 	= ByteBuffer.allocateDirect(capacity);
 		}
 		

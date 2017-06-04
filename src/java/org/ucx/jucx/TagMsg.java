@@ -29,10 +29,23 @@ public class TagMsg {
 		allocateBuffer(type);	
 	}
 	
-	private TagMsg(Worker worker, long tag) {
+	/**
+	 * Allocates a new TagMsg instance with buff as msg
+	 * 
+	 * @param tag - msg tag
+	 * @param buff - buff contains data to be sent (must remain valid until completion)
+	 */
+	public TagMsg(long tag, ByteBuffer buff) {
 		this.tag = tag;
-		msg = Bridge.recvMsgNb(worker, tag);
+		capacity = buff.capacity();
+		type = buff.isDirect() ? BufferType.DIRECT : BufferType.INDIRECT;
+		msg = buff;
 	}
+	
+//	private TagMsg(Worker worker, long tag) {
+//		this.tag = tag;
+//		msg = Bridge.recvMsgNb(worker, tag);
+//	}
 	
 	private void allocateBuffer(BufferType type) {
 		switch (type) {
@@ -49,16 +62,9 @@ public class TagMsg {
 		}
 	}
 	
-	//TODO
-//	private UCPTagMsg(UCPEndPoint ep, long tag, ByteBuffer msg) {
-//		this.msg = msg;
-//		this.tag = tag;
-//		Bridge.sendMsgNb(ep, tag, this.msg);
+//	public static TagMsg getInMsg(Worker worker, long tag) {
+//		return new TagMsg(worker, tag);
 //	}
-	
-	public static TagMsg getInMsg(Worker worker, long tag) {
-		return new TagMsg(worker, tag);
-	}
 	
 //	public static void sendMsg(UCPEndPoint ep, long tag, ByteBuffer msg) {
 //		new UCPTagMsg(ep, tag, msg);
@@ -68,10 +74,6 @@ public class TagMsg {
 		byte[] tmpBuff = new byte[buff.remaining()];
 		buff.get(tmpBuff);
 		return new String(tmpBuff, Charset.forName("US-ASCII"));
-	}
-	
-	public int getInt() {
-		return msg.getInt();
 	}
 	
 	public String getMsgAsString() {

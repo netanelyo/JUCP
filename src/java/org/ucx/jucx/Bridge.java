@@ -69,21 +69,18 @@ public class Bridge {
 		releaseWorkerNative(worker.getNativeID(), worker.getAddress().getNativeID());
 	}
 
-	/*
-	 * TODO
-	 * 
-	 * unused...
-	 */
-	private static native int probeAndProgressNative(long worker, long tag, long[] tagMsg);
-
-	static int probeAndProgress(Worker worker, long tag, long[] tagMsg) {
-		return probeAndProgressNative(worker.getNativeID(), tag, tagMsg);
+	private static native int recvMsgAsyncNative(long workerID, long tag, long tagMask, ByteBuffer msg,
+			int msgLength, long reqID);
+	
+	private static native int recvMsgAsyncNative(long workerID, long tag, long tagMask, byte[] msg,
+			int msgLength, long reqID);
+	
+	static int recvMsgAsync(Worker worker, long tag, long tagMask, ByteBuffer msg, int msgLen, long reqID) {
+		return recvMsgAsyncNative(worker.getNativeID(), tag, tagMask, msg, msgLen, reqID);
 	}
-
-	private static native ByteBuffer recvMsgNbNative(long workerID, long tag);
-
-	static ByteBuffer recvMsgNb(Worker worker, long tag) {
-		return recvMsgNbNative(worker.getNativeID(), tag);
+	
+	static int recvMsgAsync(Worker worker, long tag, long tagMask, byte[] array, int msgLen, long reqID) {
+		return recvMsgAsyncNative(worker.getNativeID(), tag, tagMask, array, msgLen, reqID);
 	}
 
 	private static native long createEpNative(long workerID, byte[] remoteAddr);
@@ -92,12 +89,20 @@ public class Bridge {
 		return createEpNative(worker.getNativeID(), addr.getWorkerAddr());
 	}
 
-	private static native int sendMsgNative(long epID, long workerID, long tag, Object msg,
-											int msgLength, boolean sync, boolean direct, long reqID);
+	private static native int sendMsgAsyncNative(long epID, long workerID, long tag, ByteBuffer msg,
+											int msgLength, long reqID);
 	
-	static int sendMsg(EndPoint ep, TagMsg msg, boolean sync, boolean direct, long reqID) {
-		return sendMsgNative(ep.getNativeID(), ep.getWorker().getNativeID(),
-						msg.getTag(), msg.getBuffer(), msg.getCapacity(), sync, direct, reqID);
+	private static native int sendMsgAsyncNative(long epID, long workerID, long tag, byte[] msg,
+			int msgLength, long reqID);
+	
+	static int sendMsgAsync(EndPoint ep, long tag, ByteBuffer msg, int msgLength, long reqID) {
+		return sendMsgAsyncNative(ep.getNativeID(), ep.getWorker().getNativeID(),
+																	tag, msg, msgLength, reqID);
+	}
+	
+	static int sendMsgAsync(EndPoint ep, long tag, byte[] msg, int msgLength, long reqID) {
+		return sendMsgAsyncNative(ep.getNativeID(), ep.getWorker().getNativeID(),
+																	tag, msg, msgLength, reqID);
 	}
 	
 	private static native void releaseEndPointNative(long epID);
@@ -106,10 +111,16 @@ public class Bridge {
 		releaseEndPointNative(ucpEndPoint.getNativeID());
 	}
 
-	private static native int progressWorkerNative(long workerID, int maxEvents);
+//	private static native int progressWorkerNative(long workerID, int maxEvents);
+//	
+//	static int progressWorker(Worker ucpWorker, int maxEvents) {
+//		return progressWorkerNative(ucpWorker.getNativeID(), maxEvents);
+//	}
+
+	private static native int progressWorkerNative(long workerID);
 	
-	static int progressWorker(Worker ucpWorker, int maxEvents) {
-		return progressWorkerNative(ucpWorker.getNativeID(), maxEvents);
+	static int progressWorker(Worker worker) {
+		return progressWorkerNative(worker.getNativeID());
 	}
 
 }

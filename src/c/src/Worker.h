@@ -5,6 +5,7 @@ extern "C" {
 #include <ucp/api/ucp.h>
 }
 
+#include <list>
 #include <cstddef>
 
 class Worker {
@@ -16,39 +17,44 @@ public:
 	ucp_address_t* initWorkerAddress(size_t& addr_len);
 
 	int getEventCnt() const {
-		return event_cnt;
+		return eventCnt;
 	}
 
 	void setEventCnt(int eventCnt) {
-		event_cnt = eventCnt;
+		this->eventCnt = eventCnt;
 	}
 
 	uint64_t *getEventQueue() const {
-		return event_queue;
+		return eventQueue;
 	}
 
-	void putInEventQueue(uint64_t item) {
-		if (event_cnt < queue_size) event_queue[event_cnt++] = item;
-	}
+	void putInEventQueue(uint64_t item);
+
+	void moveRequestsToEventQueue();
 
 	ucp_worker_h getUcpWorker() const {
-		return ucp_worker;
+		return ucpWorker;
 	}
 
-	void workerWait() {
-		while (event_cnt == 0)
-			ucp_worker_progress(ucp_worker);
+	void workerWait() { //TODO
+		while (eventCnt == 0)
+			ucp_worker_progress(ucpWorker);
 	}
 
 private:
-	ucp_worker_h 	ucp_worker;
-	ucp_address_t*	worker_address;
-	size_t			address_length;
-	int				event_cnt;
-	uint64_t		queue_size;
-	uint64_t*		event_queue;
+	ucp_worker_h 		ucpWorker;
+	ucp_address_t*		workerAddress;
+	size_t				addressLength;
+	int					eventCnt;
+	uint64_t			queueSize;
+	uint64_t*			eventQueue;
+	std::list<uint64_t> pendingRequests;
 
 	void deleteWorker();
+
+	bool hasPendingRequests() {
+		return !(pendingRequests.empty());
+	}
 };
 
 

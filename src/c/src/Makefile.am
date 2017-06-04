@@ -13,7 +13,7 @@ AM_CPPFLAGS = -std=c++11 -fPIC -DPIC -DGIT_VERSION=\"`git describe --long --tags
 lib_LTLIBRARIES = libjucp.la
 
 ###Utils.cc EventQueue.cc Events.cc CallbackFunctionsServer.cc CallbackFunctionsClient.cc ServerPortal.cc Client.cc Context.cc Msg.cc MsgPool.cc MsgPools.cc ServerSession.cc Bridge.cc
-libjucp_la_SOURCES = Bridge.cc Worker.cc RequestHandler.cc
+libjucp_la_SOURCES = Bridge.cc Worker.cc UcpRequest.cc Msg.cc
 
 libjucp_la_LDFLAGS = -shared -rdynamic -Wl,-rpath,$(topdir)ucx/install/lib
 
