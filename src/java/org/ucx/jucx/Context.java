@@ -1,7 +1,6 @@
 package org.ucx.jucx;
 
 public class Context {
-	
 	// Singleton - in order to enforce the one per process suggestion
 	private static Context ctxInstance = null;
 	

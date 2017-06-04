@@ -58,9 +58,9 @@ public class Worker {
 //		compQueue.completionCnt = cnt;
 //	}
 	
-//	/**
-//	 * Check for next events
-//	 */
+	/**
+	 * Check for events
+	 */
 	public void progress() {
 		compQueue.completionBuff.rewind();
 		int numOfEvents;
@@ -136,6 +136,15 @@ public class Worker {
 		return rcvd;
 	}
 	
+	/**
+	 * 
+	 * @param tag
+	 * @param tagMask
+	 * @param msg
+	 * @param msgLen
+	 * @param reqID
+	 * @return
+	 */
 	public int recvMessageAsync(long tag, long tagMask, ByteBuffer msg, int msgLen, long reqID) {
 		int cnt = recvMessage(tag, tagMask, msg, msgLen, reqID);
 		setCounter(cnt);

@@ -140,11 +140,6 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseWorkerNative(JNIEnv *env,
 	delete ucp_worker;
 }
 
-//JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_testerNative
-//(JNIEnv *env, jclass cls, jbyteArray jArr, jlong nativeID) {
-//	std::cout << "Compare = " << memcmp(jArr, (ucp_address_t*)nativeID, env->GetArrayLength(jArr)) << std::endl;
-//}
-
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative(
 		JNIEnv *env, jclass cls, jlong workerID, jlong jtag, jlongArray ret) {
 	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
