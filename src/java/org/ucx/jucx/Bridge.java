@@ -6,6 +6,8 @@ package org.ucx.jucx;
 
 import java.nio.ByteBuffer;
 
+import org.ucx.jucx.Worker.CompletionQueue;
+
 //import org.accelio.jxio.EventQueueHandler;
 //import org.apache.commons.logging.LogFactory;
 
@@ -22,33 +24,30 @@ public class Bridge {
 	// new ConcurrentHashMap<Long, EventQueueHandler>();
 
 	static {
-		LoadLibrary.loadLibrary("libucp.so"); // Accelio library
-		LoadLibrary.loadLibrary("libjucp.so"); // JXIO native library
+		LoadLibrary.loadLibrary("libucp.so"); // UCP library
+		LoadLibrary.loadLibrary("libjucp.so"); // JUCP native library
 		// version_jxio = getVersionNative();
 		// version_xio = getVersionAccelIONative();
 		// setNativeLogLevel(getLogLevel());
 	}
 
-	private static native long createCtxNative(UCPParams params);
+	private static native long createCtxNative(long features, long fieldMask);
 
 	static long createCtx(UCPParams params) {
 		/* Initializing ucp_context_h */
-		return createCtxNative(params);
-
-		// Bridge.mapIdEQHObject.put(dataFromC.getPtrCtx(), eqh);
+		return createCtxNative(params.getFeatures(), params.getFieldMask());
 	}
 
 	private static native void closeCtxNative(long ptr);
 
-	static void closeCtx(final long ptrCtx) {
-		closeCtxNative(ptrCtx);
-		// Bridge.mapIdEQHObject.remove(ptrCtx);
+	static void closeCtx(Context context) {
+		closeCtxNative(context.getNativeID());
 	}
 
-	private static native long createWorkerNative(long ctxID, ByteBuffer compBuff);
+	private static native long createWorkerNative(long ctxID, int maxComp, CompletionQueue compQueue);
 
-	static long createWorker(long ctxID, ByteBuffer completionBuff) {
-		return createWorkerNative(ctxID, completionBuff);
+	static long createWorker(long ctxID, int maxCompletions, CompletionQueue compQueue) {
+		return createWorkerNative(ctxID, maxCompletions, compQueue);
 	}
 
 	static native void testerNative(byte[] arr, long id);
@@ -82,7 +81,7 @@ public class Bridge {
 	private static native long createEpNative(long workerID, byte[] remoteAddr);
 
 	static long createEndPoint(Worker worker, WorkerAddress addr) {
-		return createEpNative(worker.getNativeID(), addr.getWorkerAddr());
+		return createEpNative(worker.getNativeID(), addr.getWorkerAddress());
 	}
 
 	private static native int sendMsgAsyncNative(long epID, long workerID, long tag, ByteBuffer msg,
@@ -119,4 +118,29 @@ public class Bridge {
 		return progressWorkerNative(worker.getNativeID());
 	}
 
+	private static native long getTimeNative();
+	
+	public static long getTime() {
+		return getTimeNative();
+	}
+	
+	private static native long getCycleNative();
+	
+	public static long getCycle() {
+		return getCycleNative();
+	}
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

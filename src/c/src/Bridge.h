@@ -1,18 +1,6 @@
 /*
- ** Copyright (C) 2013 Mellanox Technologies
- **
- ** Licensed under the Apache License, Version 2.0 (the "License");
- ** you may not use this file except in compliance with the License.
- ** You may obtain a copy of the License at:
- **
- ** http://www.apache.org/licenses/LICENSE-2.0
- **
- ** Unless required by applicable law or agreed to in writing, software
- ** distributed under the License is distributed on an "AS IS" BASIS,
- ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- ** either express or implied. See the License for the specific language
- ** governing permissions and  limitations under the License.
- **
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
  */
 #ifndef Bridge__H___
 #define Bridge__H___
@@ -21,21 +9,21 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstddef>
-#include <map>
 #include <iostream>
 #include <jni.h>
 
-typedef unsigned long long native_ptr;
+typedef uintptr_t native_ptr;
 
 extern "C" {
 
 /*
  * Class:     org_ucx_jucx_Bridge
  * Method:    createCtxNative
- * Signature: (Lorg/ucx/jucx/UCPParams;)J
+ * Signature: (JJ)J
  */
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jclass, jlong, jlong);
+
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -48,10 +36,10 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_closeCtxNative
 /*
  * Class:     org_ucx_jucx_Bridge
  * Method:    createWorkerNative
- * Signature: (JLjava/nio/ByteBuffer;)J
+ * Signature: (JILorg/ucx/jucx/Worker/CompletionQueue;)J
  */
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createWorkerNative
-  (JNIEnv *, jclass, jlong, jobject);
+  (JNIEnv *, jclass, jlong, jint, jobject);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -132,6 +120,23 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseEndPointNative
  */
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_progressWorkerNative
   (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    getTimeNative
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_getTimeNative
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    getCycleNative
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_getCycleNative
+  (JNIEnv *, jclass);
+
 
 }
 

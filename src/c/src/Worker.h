@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
+ */
 #ifndef SRC_WORKER_H_
 #define SRC_WORKER_H_
 
@@ -10,7 +14,7 @@ extern "C" {
 
 class Worker {
 public:
-	Worker(ucp_context_h ctx, ucp_worker_params_t params, void* buff, uint64_t cap);
+	Worker(ucp_context_h ctx, ucp_worker_params_t params, uint64_t cap);
 
 	~Worker() { deleteWorker(); }
 
@@ -28,12 +32,18 @@ public:
 		return eventQueue;
 	}
 
+	int progress();
+
 	void putInEventQueue(uint64_t item);
 
 	void moveRequestsToEventQueue();
 
 	ucp_worker_h getUcpWorker() const {
 		return ucpWorker;
+	}
+
+	uint64_t* getBuffer() const {
+		return eventQueue;
 	}
 
 	void workerWait() { //TODO
@@ -46,7 +56,7 @@ private:
 	ucp_address_t*		workerAddress;
 	size_t				addressLength;
 	int					eventCnt;
-	uint64_t			queueSize;
+	uint32_t			queueSize;
 	uint64_t*			eventQueue;
 	std::list<uint64_t> pendingRequests;
 

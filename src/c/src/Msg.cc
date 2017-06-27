@@ -1,5 +1,10 @@
+/*
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
+ */
 #include "Msg.h"
 #include "UcpRequest.h"
+
 
 int Msg::recvMsgAsync(jlong jworker, jlong jtag, jlong jtagMask, int msgLen,
 		jlong reqId) {

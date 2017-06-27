@@ -1,23 +1,19 @@
+/*
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
+ */
 package org.ucx.jucx;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 
 public class EndPoint {
 	private long 			nativeID;
 	private Worker 			localWorker;
 	private WorkerAddress 	remoteWorkerAddress;
 	
-	public EndPoint(Worker worker, WorkerAddress addr) {
+	EndPoint(Worker worker, WorkerAddress addr) {
 		localWorker = worker;
 		remoteWorkerAddress = addr;
-		nativeID = Bridge.createEndPoint(worker, remoteWorkerAddress);
-	}
-	
-	public EndPoint(Worker worker, byte[] addr) {
-		localWorker = worker;
-		remoteWorkerAddress = new WorkerAddress(addr);
 		nativeID = Bridge.createEndPoint(worker, remoteWorkerAddress);
 	}
 	
@@ -48,7 +44,29 @@ public class EndPoint {
 		return localWorker;
 	}
 	
-	public void free() {
+	public void close() {
+		localWorker.removeEndPoint(this);
 		Bridge.releaseEndPoint(this);
 	}
+
+	@Override
+	public int hashCode() {
+		return Long.hashCode(nativeID);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		
+		EndPoint other = (EndPoint) obj;
+		
+		return nativeID == other.nativeID;
+	}
+	
+	
 }

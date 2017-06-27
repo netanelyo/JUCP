@@ -1,10 +1,7 @@
 /*
- * Msg.h
- *
- *  Created on: Jun 4, 2017
- *      Author: netanelyo
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
  */
-
 #ifndef MSG_H_
 #define MSG_H_
 

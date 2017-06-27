@@ -1,10 +1,14 @@
+/*
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
+ */
 #include "Worker.h"
+#include <byteswap.h>
 #include <iostream>
 
-Worker::Worker(ucp_context_h ctx, ucp_worker_params_t params,
-		void* buff, uint64_t cap) :
+Worker::Worker(ucp_context_h ctx, ucp_worker_params_t params, uint64_t cap) :
 		workerAddress(nullptr), addressLength(0), eventCnt(0), queueSize(cap),
-		eventQueue((uint64_t*) buff), pendingRequests() {
+		eventQueue(new uint64_t[cap]) {
 
 	ucs_status_t status;
 
@@ -14,6 +18,7 @@ Worker::Worker(ucp_context_h ctx, ucp_worker_params_t params,
 }
 
 void Worker::deleteWorker() {
+	delete[] eventQueue;
 	ucp_worker_release_address(ucpWorker, workerAddress);
 	ucp_worker_destroy(ucpWorker);
 }
@@ -31,14 +36,25 @@ ucp_address_t* Worker::initWorkerAddress(size_t& addr_len) {
 }
 
 void Worker::putInEventQueue(uint64_t item) {
-	if (eventCnt < queueSize) eventQueue[eventCnt++] = item;
-	else pendingRequests.push_back(item);
+	uint64_t swapped = __bswap_64(item);
+	if (eventCnt < queueSize) eventQueue[eventCnt++] = swapped;
+	else pendingRequests.push_back(swapped);
 }
 
 void Worker::moveRequestsToEventQueue() {
-		while (eventCnt < queueSize && this->hasPendingRequests()) {
-			eventQueue[eventCnt++] = pendingRequests.front();
-			pendingRequests.pop_front();
-		}
+	while (eventCnt < queueSize && this->hasPendingRequests()) {
+		eventQueue[eventCnt++] = pendingRequests.front();
+		pendingRequests.pop_front();
 	}
+}
+
+int Worker::progress() {
+	moveRequestsToEventQueue();
+	ucp_worker_progress(ucpWorker);
+
+	int cnt = this->eventCnt;
+	setEventCnt(0);
+
+	return cnt;
+}
 

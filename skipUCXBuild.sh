@@ -16,10 +16,6 @@ SRC_JAVA_FOLDER=${SRC_JAVA_FOLDER:-$TOP_DIR/src/java}
 SRC_JAVA_FILES="$SRC_JAVA_FOLDER/org/ucx/jucx/*.java"
 NATIVE_LIBS="libjucp.so libucp.so libucs.so libuct.so"
 
-#SRC_JAVA_FILES="$SRC_JAVA_FOLDER/org/accelio/jxio/*.java $SRC_JAVA_FOLDER/org/accelio/jxio/exceptions/*.java \
-#$SRC_JAVA_FOLDER/org/accelio/jxio/impl/*.java $SRC_JAVA_FOLDER/org/accelio/jxio/jxioConnection/*.java \
-#$SRC_JAVA_FOLDER/org/accelio/jxio/jxioConnection/impl/*.java $SRC_JAVA_FOLDER/org/apache/lucene/facet/taxonomy/LRUHashMap.java"
-
 if [ -z "$DONT_STRIP" ]; then
 	STRIP_COMMAND="strip -s"
 else
@@ -29,20 +25,6 @@ fi
 ## Clean
 rm -fr $BIN_FOLDER/*
 mkdir -p $BIN_FOLDER
-
-### Build UCX
-#echo "Build UCX... libucx C code"
-#cd $TOP_DIR
-#git submodule update --init
-#GIT_VERSION_XIO=`cd src/ucx; git describe --long --tags --always --dirty`
-##echo "AccelIO git version: $GIT_VERSION_XIO"
-#cd src/ucx/ && make distclean -si > /dev/null 2>&1;
-#./autogen.sh && ./contrib/configure-release --prefix=$PWD/install/ --silent && make -j install --quiet \
-#		&& cp -f install/lib/libuc*.so $BIN_FOLDER  && $STRIP_COMMAND $BIN_FOLDER/libuc*.so 
-#if [[ $? != 0 ]] ; then
-#    echo "FAILURE! stopped JUCP build"
-#    exit 1
-#fi
 
 cd src/ucx/ && cp -f install/lib/libuc*.so $BIN_FOLDER  && $STRIP_COMMAND $BIN_FOLDER/libuc*.so
 
@@ -72,7 +54,7 @@ cp -f src/.libs/libjucp.so $BIN_FOLDER && $STRIP_COMMAND $BIN_FOLDER/libjucp.so
 
 ###############
 
-## Build JXIO JAVA code
+## Build JUCP JAVA code
 echo "Build JUCP Java code"
 cd $TOP_DIR
 javac -cp $LIB_FOLDER/commons-logging.jar -d $BIN_FOLDER $SRC_JAVA_FILES
@@ -111,8 +93,7 @@ fi
 
 ## Print Version details
 cd $TOP_DIR
-echo "JXIO git version: $GIT_VERSION" > version
-echo "AccelIO git version: $GIT_VERSION_XIO" >> version
+echo "JUCP git version: $GIT_VERSION" > version
 echo ""; cat $TOP_DIR/version
 
 echo -e "\nJUCP Build completed SUCCESSFULLY!\n"

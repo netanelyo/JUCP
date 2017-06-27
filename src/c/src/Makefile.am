@@ -2,22 +2,22 @@ JDK = $(JAVA_HOME)
 topdir=../../
 
 # additional include paths necessary to compile the C library
-AM_CPPFLAGS = -std=c++11 -fPIC -DPIC -DGIT_VERSION=\"`git describe --long --tags --always --dirty`\" -Werror \
+AM_CPPFLAGS = -fPIC -DPIC -DGIT_VERSION=\"`git describe --long --tags --always --dirty`\" -Werror \
 		-I$(JDK)/include -I$(JDK)/include/linux \
-		-I$(topdir)ucx/install/include/
+		-I$(topdir)ucx/src/
 		
+AM_CXXFLAGS = -std=c++11 
 ###############################################################################
 # THE LIBRARIES TO BUILD
 ###############################################################################
 
 lib_LTLIBRARIES = libjucp.la
 
-###Utils.cc EventQueue.cc Events.cc CallbackFunctionsServer.cc CallbackFunctionsClient.cc ServerPortal.cc Client.cc Context.cc Msg.cc MsgPool.cc MsgPools.cc ServerSession.cc Bridge.cc
 libjucp_la_SOURCES = Bridge.cc Worker.cc UcpRequest.cc Msg.cc
 
 libjucp_la_LDFLAGS = -shared -rdynamic -Wl,-rpath,$(topdir)ucx/install/lib
 
-libjucp_la_LIBADD = -luct -lucs -lucp -L$(topdir)ucx/install/lib 
+libjucp_la_LIBADD = -L$(topdir)ucx/install/lib -lucs -luct -lucp
 
 libjucp_la_DEPENDENCIES = Makefile.am Makefile.in Makefile
 

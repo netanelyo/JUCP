@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
+ */
 #include "UcpRequest.h"
 #include <iostream>
 
@@ -17,7 +21,7 @@ void UcpRequest::RequestHandler::commonHandler(void *request) {
 	req->worker = nullptr;
 	delete req->msg;
 	req->msg = nullptr;
-	ucp_request_release(request);
+	ucp_request_free(request);
 
 }
 
@@ -40,7 +44,7 @@ int UcpRequest::requestErrorCheck(request_t* request, Worker* worker, Msg* msg, 
 	}
 	else if (UCS_PTR_STATUS(request) != UCS_OK) {
 		// Async handling - request still in progress
-		request->requestID 	= reqId;
+		request->requestID 	= (uint64_t) reqId;
 		request->worker 	= worker;
 		request->msg 		= msg;
 		return 0;
@@ -50,7 +54,7 @@ int UcpRequest::requestErrorCheck(request_t* request, Worker* worker, Msg* msg, 
 		worker->moveRequestsToEventQueue();
 
 		// Sent successfully
-		worker->putInEventQueue(reqId);
+		worker->putInEventQueue((uint64_t) reqId);
 
 		return worker->getEventCnt();
 	}

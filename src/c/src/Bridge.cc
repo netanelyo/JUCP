@@ -1,18 +1,6 @@
 /*
- ** Copyright (C) 2013 Mellanox Technologies
- **
- ** Licensed under the Apache License, Version 2.0 (the "License");
- ** you may not use this file except in compliance with the License.
- ** You may obtain a copy of the License at:
- **
- ** http://www.apache.org/licenses/LICENSE-2.0
- **
- ** Unless required by applicable law or agreed to in writing, software
- ** distributed under the License is distributed on an "AS IS" BASIS,
- ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- ** either express or implied. See the License for the specific language
- ** governing permissions and  limitations under the License.
- **
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
  */
 
 #include "Bridge.h"
@@ -22,27 +10,96 @@
 
 extern "C" {
 	#include <ucp/api/ucp.h>
+	#include "ucs/time/time.h"
 }
 
-//static jclass cls;
-//static JavaVM *cached_jvm;
-//
-//static jclass cls_data;
-//static jweak jweakBridge; // use weak global ref for allowing GC to unload & re-load the class and handles
-//static jclass jclassBridge; // just casted ref to above jweakBridge. Hence, has same life time
+static jclass cached_cls;
+static JavaVM *cached_jvm;
+
+static jclass cls_data;
+static jlong cached_ctx;
+static jweak jweakBridge; // use weak global ref for allowing GC to unload & re-load the class and handles
+static jclass jclassBridge; // just casted ref to above jweakBridge. Hence, has same life time
 //static jfieldID fidPtr;
-//static jfieldID fidBuf;
+static jfieldID fidBuf;
 //static jfieldID fidError;
 //static jmethodID jmethodID_logToJava; // handle to java cb method
 //static jmethodID jmethodID_requestForBoundMsgPool;
 
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void* reserved)
+{
+	cached_jvm = jvm;
+	JNIEnv *env;
+
+	// direct buffer requires java 1.4
+	if (jvm->GetEnv((void **)&env, JNI_VERSION_1_8)) {
+		std::cout << "JNI version 1.4 or higher required" << std::endl;
+		return JNI_ERR;
+	}
+
+	cached_cls = env->FindClass("org/ucx/jucx/Bridge");
+	if (cached_cls == NULL) {
+		return JNI_ERR;
+	}
+
+	// keeps the handle valid after function exits, but still, use weak global ref
+	// for allowing GC to unload & re-load the class and handles
+	jweakBridge = env->NewWeakGlobalRef(cached_cls);
+	if (jweakBridge == NULL) {
+		return JNI_ERR;
+	}
+	jclassBridge = (jclass)jweakBridge;
+
+	cls_data = env->FindClass("org/ucx/jucx/Worker$CompletionQueue");
+	if (cls_data == NULL) {
+		std::cout << "java class was NOT found" << std::endl;
+		return JNI_ERR;
+	}
+//
+//	if (fidPtr == NULL) {
+//		fidPtr = env->GetFieldID(cls_data, "ptrCtx", "J");
+//		if (fidPtr == NULL) {
+//			bridge_print_error("could not get field ptrCtx");
+//		}
+//	}
+
+	if (fidBuf == NULL) {
+		fidBuf = env->GetFieldID(cls_data, "completionBuff","Ljava/nio/ByteBuffer;");
+		if (fidBuf == NULL) {
+			std::cout << "could not get field fidBuf" << std::endl;
+		}
+	}
+
+	return JNI_VERSION_1_8;  //direct buffer requires java 1.4
+}
+
+extern "C" JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *jvm, void* reserved)
+{
+//	logs_from_xio_callback_unregister();
+//	xio_shutdown();
+//
+//	// NOTE: We never reached this place
+//	static bool alreadyCalled = false;
+//	BULLSEYE_EXCLUDE_BLOCK_START
+//	if (alreadyCalled) return;
+//	alreadyCalled = true;
+//
+	JNIEnv *env;
+	if (cached_jvm->GetEnv((void **)&env, JNI_VERSION_1_8)) {
+		return;
+	}
+
+	if (jweakBridge != NULL) {
+		env->DeleteWeakGlobalRef(jweakBridge);
+		jweakBridge = NULL;
+	}
+
+	Java_org_ucx_jucx_Bridge_closeCtxNative(env, jclassBridge, cached_ctx);
+	return;
+}
 
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative(JNIEnv *env,
-		jclass cls, jobject params) {
-
-	/* JNI temporary vars */
-	jfieldID fid;
-	jclass params_native;
+		jclass cls, jlong feats, jlong fieldMask) {
 
 	/* UCP temporary vars */
 	ucp_params_t ucp_params;
@@ -59,14 +116,8 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative(JNIEnv *env,
 	if (status != UCS_OK)
 		std::cout << "Error: ucp_config_read()" << std::endl;
 
-	params_native = env->GetObjectClass(params);
-
-	fid = env->GetFieldID(params_native, "features", "J");
-	ucp_params.features = env->GetLongField(params, fid);
-
-	fid = env->GetFieldID(params_native, "fieldMask", "J");
-	ucp_params.field_mask = env->GetLongField(params, fid);
-
+	ucp_params.features 	= (uint64_t) feats;
+	ucp_params.field_mask 	= (uint64_t) fieldMask;
 	ucp_params.request_size = sizeof(Request);
 	ucp_params.request_init = UcpRequest::RequestHandler::requestInit;
 
@@ -74,38 +125,46 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative(JNIEnv *env,
 
 	ucp_config_release(config);
 
+	if (status != UCS_OK)
+		return 0;
+
+	cached_ctx = (native_ptr) ucp_context;
+
 	return (native_ptr) ucp_context;
 
 }
 
 JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_closeCtxNative(JNIEnv *env, jclass cls, jlong ptrCtx)
 {
-	ucp_cleanup((ucp_context_h) ptrCtx);
+	ucp_context_h ctx = (ucp_context_h) ptrCtx;
+	if (ctx)
+		ucp_cleanup(ctx);
+	cached_ctx = 0;
 }
 
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createWorkerNative(JNIEnv *env,
-		jclass cls, jlong ptrCtx, jobject compBuff) {
-	ucp_context_h ucp_context = (ucp_context_h) ptrCtx;
-	ucp_worker_params_t worker_params = { 0 };
-	Worker* ucp_worker;
+		jclass cls, jlong ptrCtx, jint maxComp, jobject compQueue) {
+	ucp_context_h ucpContext = (ucp_context_h) ptrCtx;
+	ucp_worker_params_t workerParams = { 0 };
+	Worker* ucpWorker;
 	ucs_status_t status;
-	void* tmp;
-	uint64_t cap;
+	jobject jbyteBuff;
+	uint32_t cap = (uint32_t) maxComp;
 
-	worker_params.field_mask = UCP_WORKER_PARAM_FIELD_THREAD_MODE;
-	worker_params.thread_mode = UCS_THREAD_MODE_SINGLE;
+	workerParams.field_mask = UCP_WORKER_PARAM_FIELD_THREAD_MODE;
+	workerParams.thread_mode = UCS_THREAD_MODE_SINGLE;
 
-	tmp = env->GetDirectBufferAddress(compBuff);
-	if (!tmp) {
-		std::cout << "Error: Failed to extract direct ByteBuffer address" << std::endl;
+	ucpWorker = new Worker(ucpContext, workerParams, cap);
+
+	jbyteBuff = env->NewDirectByteBuffer(ucpWorker->getBuffer(), cap);
+	if (!jbyteBuff) {
+		std::cout << "Error: Failed to allocate direct ByteBuffer" << std::endl;
 		return -1;
 	}
 
-	cap = (uint64_t) env->GetDirectBufferCapacity(compBuff);
+	env->SetObjectField(compQueue, fidBuf, jbyteBuff);
 
-	ucp_worker = new Worker(ucp_context, worker_params, tmp, cap);
-
-	return (native_ptr) ucp_worker;
+	return (native_ptr) ucpWorker;
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_ucx_jucx_Bridge_getWorkerAddressNative
@@ -142,25 +201,26 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseWorkerNative(JNIEnv *env,
 
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_probeAndProgressNative(
 		JNIEnv *env, jclass cls, jlong workerID, jlong jtag, jlongArray ret) {
-	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
-	ucp_tag_recv_info_t info_tag;
-	ucp_tag_t tag = (ucp_tag_t) jtag;
-	ucp_tag_t mask = -1;
-	jlong tmp;
-	jlong* msg_tag_ptr;
-	ucp_tag_message_h msg_tag = NULL;
-
-	do {
-		ucp_worker_progress(ucp_worker);
-
-		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, mask, 1, &info_tag);
-	} while (!msg_tag);
-
-	tmp = (jlong) msg_tag;
-	msg_tag_ptr = &tmp;
-	env->SetLongArrayRegion(ret, 0, 1, msg_tag_ptr);
-
-	return info_tag.length;
+//	ucp_worker_h ucp_worker = (ucp_worker_h) workerID;
+//	ucp_tag_recv_info_t info_tag;
+//	ucp_tag_t tag = (ucp_tag_t) jtag;
+//	ucp_tag_t mask = -1;
+//	jlong tmp;
+//	jlong* msg_tag_ptr;
+//	ucp_tag_message_h msg_tag = NULL;
+//
+//	do {
+//		ucp_worker_progress(ucp_worker);
+//
+//		msg_tag = ucp_tag_probe_nb(ucp_worker, tag, mask, 1, &info_tag);
+//	} while (!msg_tag);
+//
+//	tmp = (jlong) msg_tag;
+//	msg_tag_ptr = &tmp;
+//	env->SetLongArrayRegion(ret, 0, 1, msg_tag_ptr);
+//
+//	return info_tag.length;
+	return 0;
 }
 
 JNIEXPORT jint JNICALL
@@ -175,7 +235,7 @@ Java_org_ucx_jucx_Bridge_recvMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
 		return -1;
 	}
 
-	Msg* msg = new Msg(msg, msgLen);
+	Msg* msg = new Msg(buff, msgLen);
 
 	ret = msg->recvMsgAsync(jworker, jtag, jtagMask, msgLen, reqId);
 
@@ -211,13 +271,14 @@ JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_recvMsgAsyncNative__JJJ_3BIJ
 }
 
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative(JNIEnv *env,
-		jclass cls, jlong local_worker, jbyteArray remote_addr) {
-	ucp_worker_h ucp_worker = (ucp_worker_h) local_worker;
+		jclass cls, jlong localWorker, jbyteArray remoteAddr) {
+	Worker* worker = (Worker*) localWorker;
 	ucs_status_t status;
+	ucp_worker_h ucp_worker = worker->getUcpWorker();
 
-	jsize len = env->GetArrayLength(remote_addr);
+	jsize len = env->GetArrayLength(remoteAddr);
 	ucp_address_t* remote_worker_addr = (ucp_address_t*) calloc(1, len);
-	env->GetByteArrayRegion(remote_addr, 0, len, (jbyte*) remote_worker_addr);
+	env->GetByteArrayRegion(remoteAddr, 0, len, (jbyte*) remote_worker_addr);
 
 	ucp_ep_params_t ep_params;
 
@@ -288,14 +349,19 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseEndPointNative
 
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_progressWorkerNative
 		(JNIEnv *env, jclass cls, jlong jworker) {
+
 	Worker* worker = (Worker*) jworker;
 
-	worker->moveRequestsToEventQueue();
-	ucp_worker_progress(worker->getUcpWorker());
-
-	int cnt = worker->getEventCnt();
-	worker->setEventCnt(0);
-
-	return cnt;
+	return worker->progress();
 }
+
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_getTimeNative(JNIEnv *env, jclass cls) {
+	ucs_time_t time = ucs_get_time();
+	return ucs_time_to_nsec(time);
+}
+
+JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_getCycleNative(JNIEnv *env, jclass cls) {
+	return ucs_get_time();
+}
+
 

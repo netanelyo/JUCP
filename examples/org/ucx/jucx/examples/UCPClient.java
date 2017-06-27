@@ -3,123 +3,42 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
 
-import org.ucx.jucx.UCPConstants;
-import org.ucx.jucx.Context;
 import org.ucx.jucx.EndPoint;
-import org.ucx.jucx.UCPParams;
-import org.ucx.jucx.Utils;
-import org.ucx.jucx.TagMsg;
 import org.ucx.jucx.Worker;
 import org.ucx.jucx.WorkerAddress;
+import org.ucx.jucx.examples.ExampleContext.BandwidthBuffer;
+import org.ucx.jucx.examples.ExampleUtils.BandwidthCallback;
+import org.ucx.jucx.examples.ExampleUtils.PingPongCallback;
+import org.ucx.jucx.utils.Utils;
+import org.ucx.jucx.utils.Utils.Time;
 
-public class UCPClient {
+public class UCPClient extends UCPBase {
 	
-	private String 	host	= "127.0.0.1";
-	private int 	port 	= 12345;
-	private int 	iters 	= 1000;
-	private int 	size	= 64;
-	private long	tag		= 29592;
-	private boolean print	= false;
+	private String host = "127.0.0.1";
 	
-	public class Callback implements Worker.Callbacks {
-		
-		public LinkedList<Long> requests = new LinkedList<>();
-		
-		@Override
-		public void requestHandle(long requestId) {
-			requests.add(requestId);
-		}
-	}
-
 	public static void main(String[] args) {
 		UCPClient client = new UCPClient();
 		client.parseArgs(args);
-		try {
-			client.run();
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
-			System.out.println("Exception in client");
-		}
-
+		client.run();
 	}
 	
-	private static void usage() {
-		StringBuffer str = new StringBuffer();
-		String sep = System.lineSeparator();
-		str.append("Usage: java org.ucx.jucx.examples.UCPClient <Host_IP_address> [OPTION]..." + sep);
-		str.append(sep + "Options:" + sep);
-		str.append("\t-p port           port to listen on (default 12345)" + sep);
-		str.append("\t-n iterations     number of iterations (default 1000)" + sep);
-		str.append("\t-s size           msg size in bytes (default 64)" + sep);
-		str.append("\t-t tag            request tag (default 29592)" + sep);
-		str.append("\t-v                enable printing to System.out (default no print)" + sep);
-//		str.append("\t-f file           file to print all messages to (default System.out)" + sep);
-		str.append("\t-h                display this help and exit" + sep);
-		System.out.println(str.toString());
+	@Override
+	protected void usage() {
+		System.out.println("Usage: ./runClient.sh <Host_IP_address> [OPTION]...");
+		super.usage();
 	}
 	
-	private void parseArgs(String[] args) {
-		int whence = 0;
+	@Override
+	protected void parseArgs(String[] args) {
 		if (args.length > 0 && !args[0].startsWith("-"))
 		{
 			host = args[0];
-			whence = 1;
 		}
-		Map<String, String> parameters = OptionsUtils.getOptionsMap(args, whence);
-		
-		for (Entry<String, String> entry : parameters.entrySet()) {
-			String key = entry.getKey();
-			String val = entry.getValue();
-			switch (key) {
-			case "-h":
-				usage();
-				System.exit(0);
-				break;
-				
-			case "-p":
-				port 	= Integer.parseInt(val);
-				break;
-				
-			case "-n":
-				iters 	= Integer.parseInt(val);
-				break;
-				
-			case "-s":
-				size 	= Integer.parseInt(val);
-				break;
-				
-			case "-t":
-				tag 	= Long.parseLong(val);
-				break;
-
-			case "-v":
-				print 	= true;
-				break;
-				
-			default:
-				break;
-			}
-		}
+		super.parseArgs(args);
 	}
-
-	private void run() throws Exception {
-		
-		System.out.println("Java UCP Hello World - Client");
-		
-		long feats 	= UCPParams.Features.UCP_FEATURE_TAG;
-		long mask 	= UCPParams.FieldMask.UCP_PARAM_FIELD_FEATURES;
-
-		UCPParams params = new UCPParams(feats, mask);
-		Context ctx = Context.getInstance(params);
-		Callback cb = new Callback();
-
-		Worker worker = new Worker(ctx, cb);
+	
+	private Socket recvWorkerAddress() throws Exception {
 		System.out.println("Connecting....");
 		Socket sock = new Socket(host, port);
 
@@ -128,39 +47,111 @@ public class UCPClient {
 		
 		System.out.println("Received UCP Address");
 		
-		EndPoint ep = new EndPoint(worker, addr);
+		ucp.endPoint = ucp.worker.createEndPoint(addr);
 		
-		ObjectOutputStream outStream = new ObjectOutputStream(sock.getOutputStream());
-		outStream.writeObject(worker.getAddress());
+		return sock;
+	}
+	
+	@Override
+	protected void exchWorkerAddressBW() throws Exception {
+		Socket sock = recvWorkerAddress();
 		sock.close();
+	}
+	
+	@Override
+	protected void runBandwidth() {
+		bufferPool = new BandwidthBuffer(outstanding, false);
+		BandwidthCallback cb = new BandwidthCallback((BandwidthBuffer) bufferPool, iters);
+		initBandwidth(cb);
 		
-		System.out.println("Created UCP end point" + System.lineSeparator() + "Sending Message");
+		String msg = ExampleUtils.generateRandomString(size - 6) + ": ";
+		int pos = bufferPool.setOutputBuffer(size, msg);
+		EndPoint ep = ucp.endPoint;
+		Worker worker = ucp.worker;
 		
-		ByteBuffer out 	= ByteBuffer.allocateDirect(size);
-		ByteBuffer in 	= ByteBuffer.allocateDirect(size);
-		out.put("Hello from UCPClient: ".getBytes());
-		int pos = out.position();
-		
-		long start = System.nanoTime();
+		long[] times = new long[iters];
+		int reqs = 1;
 		
 		for (int i = 0; i < iters; i++) {
-			out.putInt(pos, i);
-			ep.sendMessageAsync(tag, out, size, 2*i + 1);
+			times[i] = Time.nanoTime();
 			
-			worker.recvMessageAsync(tag, -1, in, size, 2*i);
+			ByteBuffer out = bufferPool.getOutputBuffer();
+			out.putInt(pos, i);
+			out.flip();
+			ep.sendMessageAsync(tag, out, size, 2*i);
+			out.clear();
+			
+			if (reqs >= outstanding) {
+				reqs = 1;
+				
+				while (!cb.ready())
+					worker.progress();
+			}
+			else {
+				reqs++;
+			}
+		}
+	}
+	
+	@Override
+	protected void exchWorkerAddressPP() throws Exception {
+		Socket sock = recvWorkerAddress();
+		
+		ObjectOutputStream outStream = new ObjectOutputStream(sock.getOutputStream());
+		outStream.writeObject(ucp.worker.getAddress());
+		
+		sock.close();		
+	}
+	
+	@Override
+	protected void runPingPong() {
+		PingPongCallback cb = new PingPongCallback(2*iters);
+		int pos = initPingPong(cb);
+		
+		Worker worker = ucp.worker;
+		EndPoint ep = ucp.endPoint;
+		
+		ByteBuffer in 	= bufferPool.getInputBuffer();
+		ByteBuffer out 	= bufferPool.getOutputBuffer();
+		
+		long[] times = new long[iters];
+		long t1, t2;
+		
+		for (int i = 0; i < iters; i++) {
+			t1 = Time.nanoTime();
+			
+			out.putInt(pos, i);
+			out.flip();
+			ep.sendMessageAsync(tag, out, size, 2*i);
+			out.clear();
+
+			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, 2*i + 1);
 			if (print)
 				System.out.println(Utils.getByteBufferAsString(in));
+			
+			while (cb.last < 2*(i+1))
+				worker.progress();
+			
+			t2 = Time.nanoTime();
+			
+			times[i] = t2 - t1;
 		}
 		
-		long end = System.nanoTime();
+		while (cb.last < 2*iters)
+			worker.progress();
+	
 		
-		System.out.println("1000 packets in " + (end - start)/1000000000.0 + " secs");
-		System.out.println("Packet rate = " + 1000.0/(end - start));
-		
-		ep.free();
-		worker.free();
-		
+//		double secs = timeInSecs(total);
+//		System.out.println("average latency (usec): " + new DecimalFormat("#0.000").format(timeInUsecs(total)/(2*iters)));
+//		System.out.println("message rate (msg/s): " + Math.round(2*iters/secs));
 	}
+	
+	@Override
+	protected void init() {
+		System.out.println("Java UCP Hello World - Client");
+		super.init();
+	}
+
 
 }
 

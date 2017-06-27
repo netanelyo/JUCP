@@ -1,28 +1,52 @@
+/*
+ * Copyright (C) Mellanox Technologies Ltd. 2001-2017.  ALL RIGHTS RESERVED.
+ * See file LICENSE for terms.
+ */
 package org.ucx.jucx;
 
+/**
+ * Application context that holds the UCP communication instance's global
+ * information. Represents a single communication instance.
+ */
 public class Context {
 	// Singleton - in order to enforce the one per process suggestion
-	private static Context ctxInstance = null;
+	private static Context CTX = null;
 	
-	public UCPParams params;
+	private UCPParams params;
 	private long nativeID;
 	
-	private Context(UCPParams params) {
+	private Context(UCPParams params, long natID) {
 		this.params = params;
-		nativeID = Bridge.createCtx(params);
+		nativeID = natID;
 	}
 	
+	/**
+	 * Retrieves the application context (singleton).
+	 * 
+	 * @param params - the UCP parameters to be passed to context initialization.
+	 * 
+	 * @return application context
+	 */
 	public static Context getInstance(UCPParams params) {
-		if (ctxInstance == null) {
-			ctxInstance = new Context(params);
+		if (CTX == null) {
+			long nat = Bridge.createCtx(params);
+			if (nat != 0)
+				CTX = new Context(params, nat);
 		}
 		
-		return ctxInstance;
+		return CTX;
+	}
+	
+	public void close() {
+		Bridge.closeCtx(this);
 	}
 
+	/**
+	 * Getter for native pointer as long.
+	 * 
+	 * @return long integer representing native pointer
+	 */
 	public long getNativeID() {
 		return nativeID;
 	}
-
-	//TODO - getParams
 }
