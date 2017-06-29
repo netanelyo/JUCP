@@ -27,11 +27,11 @@ public class Utils {
 			return Bridge.getCycle();
 		}
 		
-		public double toUsecs(long time) {
+		public static double toUsecs(long time) {
 			return time/1000.0;
 		}
 		
-		public double toSecs(long time) {
+		public static double toSecs(long time) {
 			return time/1000000000.0;
 		}
 	}

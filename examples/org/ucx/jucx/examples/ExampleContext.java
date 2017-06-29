@@ -1,5 +1,9 @@
 package org.ucx.jucx.examples;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +71,7 @@ public class ExampleContext {
 		}
 		
 		private int next() {
-			if (--free <= 0)
+			if (--free < 0)
 				return -1;
 			return increment();
 		}
@@ -78,8 +82,8 @@ public class ExampleContext {
 			return next;
 		}
 		
-		boolean ready() {
-			return free >= bound;
+		boolean hasFree() {
+			return free > 0;
 		}
 		
 		void freeOne() {
@@ -98,7 +102,7 @@ public class ExampleContext {
 		public ByteBuffer getOutputBuffer() {
 			ByteBuffer out = null;
 			if (outBuffers != null)
-				outBuffers.get(next());
+				out = outBuffers.get(next());
 			return out;
 		}
 		
@@ -147,4 +151,46 @@ public class ExampleContext {
 			this.ctx = ctx;
 		}
 	}
+	
+	static class TcpConnection {
+		public Socket sock;
+		private InputStream inStream;
+		private OutputStream outStream;
+		
+		public TcpConnection(Socket socket) {
+			sock = socket;
+			try {
+				inStream = sock.getInputStream();
+				outStream = sock.getOutputStream();
+			} catch (IOException e) {
+				System.out.println("TcpConnection");
+				e.printStackTrace();
+			}
+		}
+		
+		public void barrier(boolean server) throws IOException {
+			if (server)
+				serverBarrier();
+			else
+				clientBarrier();
+		}
+		
+		private void clientBarrier() throws IOException {
+			int x = 0;
+			outStream.write(x);
+			x = inStream.read();
+		}
+
+		private void serverBarrier() throws IOException {
+			int x;
+			x = inStream.read();
+			outStream.write(x);
+		}
+	}
 }
+
+
+
+
+
+

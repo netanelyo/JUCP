@@ -202,15 +202,16 @@ public class Worker {
 	 * For each completion (with id != -1) the request handler is invoked.
 	 */
 	public void progress() {
-		compQueue.completionBuff.rewind();
+		compQueue.completionBuff.clear();
 		int numOfEvents;
 		
-		synchronized (mutex)
-		{
+		//TODO: remove sync
+//		synchronized (mutex)
+//		{
 			numOfEvents = Bridge.progressWorker(this);
-		}
+//		}
 		
-		OutstandingRequests.getAndAdd(-numOfEvents);
+//		OutstandingRequests.getAndAdd(-numOfEvents);
 		
 		for (int i = 0; i < numOfEvents; i++) {
 			long compId = compQueue.completionBuff.getLong();
@@ -292,19 +293,21 @@ public class Worker {
 			throw new BufferUnderflowException();
 		
 		int sent = 0;
-		OutstandingRequests.incrementAndGet();
+//		OutstandingRequests.incrementAndGet();
 		
-		synchronized (mutex)
-		{
-			if (msg.isDirect()) {
+		//TODO: test w/o
+//		synchronized (mutex)
+//		{
+			//TODO: no if
+//			if (msg.isDirect()) {
 				sent = Bridge.sendMsgAsync(ep, tag, msg, msgLen, reqID);
-			}
-			else {
-				sent = Bridge.sendMsgAsync(ep, tag, msg.array(), msgLen, reqID);
-			}
-		}
+//			}
+//			else {
+//				sent = Bridge.sendMsgAsync(ep, tag, msg.array(), msgLen, reqID);
+//			}
+//		}
 		
-		checkRequestReturnStatus(sent);
+//		checkRequestReturnStatus(sent);
 		
 		return sent;
 	}
@@ -314,19 +317,19 @@ public class Worker {
 			throw new BufferOverflowException();
 		
 		int rcvd = 0;
-		OutstandingRequests.incrementAndGet();
+//		OutstandingRequests.incrementAndGet();
 		
-		synchronized (mutex)
-		{
-			if (msg.isDirect()) {
+//		synchronized (mutex)
+//		{
+//			if (msg.isDirect()) {
 				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg, msgLen, reqID);
-			}
-			else {
-				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg.array(), msgLen, reqID);
-			}
-		}
+//			}
+//			else {
+//				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg.array(), msgLen, reqID);
+//			}
+//		}
 		
-		checkRequestReturnStatus(rcvd);
+//		checkRequestReturnStatus(rcvd);
 		
 		return rcvd;
 	}

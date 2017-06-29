@@ -235,14 +235,25 @@ Java_org_ucx_jucx_Bridge_recvMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
 		return -1;
 	}
 
-	Msg* msg = new Msg(buff, msgLen);
+	ucp_tag_t tag = (ucp_tag_t) jtag;
+	ucp_tag_t mask = (ucp_tag_t) jtagMask;
+	Request* request = 0;
+	Worker* worker = (Worker*) jworker;
+	ucp_worker_h ucp_worker = worker->getUcpWorker();
 
-	ret = msg->recvMsgAsync(jworker, jtag, jtagMask, msgLen, reqId);
+	request = (Request*) ucp_tag_recv_nb(ucp_worker, buff, msgLen,
+			ucp_dt_make_contig(1), tag, mask, UcpRequest::RequestHandler::recvRequestHandler);
 
-	if (ret)
-		delete msg;
+	return UcpRequest::requestErrorCheck(request, worker, nullptr, reqId);
 
-	return ret;
+//	Msg* msg = new Msg(buff, msgLen);
+//
+//	ret = msg->recvMsgAsync(jworker, jtag, jtagMask, msgLen, reqId);
+//
+//	if (ret)
+//		delete msg;
+//
+//	return ret;
 }
 
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_recvMsgAsyncNative__JJJ_3BIJ
@@ -307,14 +318,24 @@ Java_org_ucx_jucx_Bridge_sendMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
 		return -1;
 	}
 
-	Msg* msg = new Msg(buff, msgLen);
+	ucp_ep_h ep = (ucp_ep_h) jep;
+	Request* request = 0;
+	ucp_tag_t tag = (ucp_tag_t) jtag;
+	Worker* worker = (Worker*) jworker;
 
-	ret = msg->sendMsgAsync(jep, jworker, jtag, msgLen, reqId);
+	request = (Request*) ucp_tag_send_nb(ep, buff, msgLen,
+			ucp_dt_make_contig(1), tag, UcpRequest::RequestHandler::sendRequestHandler);
 
-	if (ret)
-		delete msg;
+	return UcpRequest::requestErrorCheck(request, worker, nullptr, reqId);
 
-	return ret;
+//	Msg* msg = new Msg(buff, msgLen);
+//
+//	ret = msg->sendMsgAsync(jep, jworker, jtag, msgLen, reqId);
+//
+//	if (ret)
+//		delete msg;
+//
+//	return ret;
 }
 
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_sendMsgAsyncNative__JJJ_3BIJ

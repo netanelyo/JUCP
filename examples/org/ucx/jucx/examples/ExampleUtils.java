@@ -1,8 +1,10 @@
 package org.ucx.jucx.examples;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Random;
 
+import org.ucx.jucx.EndPoint;
 import org.ucx.jucx.Worker;
 import org.ucx.jucx.examples.ExampleContext.BandwidthBuffer;
 
@@ -26,8 +28,8 @@ public class ExampleUtils {
 			bufferPool = buff;
 		}
 		
-		public boolean ready() {
-			return bufferPool.ready();
+		public boolean isReady() {
+			return bufferPool.hasFree();
 		}
 		
 		@Override
@@ -37,18 +39,39 @@ public class ExampleUtils {
 		}
 	}
 	
+	public static class ServerCallback implements Worker.Callbacks {
+		int requests;
+		boolean done;
+		Worker worker;
+		EndPoint ep;
+		ByteBuffer buff;
+		
+		public ServerCallback(int requests) {
+			this.requests = requests;
+			done = requests > 0 ? false : true;
+		}
+		
+		@Override
+		public void requestHandle(long requestId) {
+			if (requests % 2 == 0) {
+				
+			}
+			
+		}
+	}
+	
 	public static class PingPongCallback implements Worker.Callbacks {
-		public int[] requests;
+//		public int[] requests;
 		public int last;
 		
 		public PingPongCallback(int size) {
-			requests = new int[size];
+//			requests = new int[size];
 			last = 0;
 		}
 		
 		@Override
 		public void requestHandle(long requestId) {
-			requests[(int)requestId]++;
+//			requests[(int)requestId]++;
 			last++;
 		}
 	}

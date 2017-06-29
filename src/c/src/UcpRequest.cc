@@ -18,9 +18,10 @@ void UcpRequest::RequestHandler::commonHandler(void *request) {
 	//assert(req->worker);
 	//assert(req->requestID);
 	req->worker->putInEventQueue(req->requestID);
+	//TODO: remove
 	req->worker = nullptr;
-	delete req->msg;
-	req->msg = nullptr;
+//	delete req->msg;
+//	req->msg = nullptr;
 	ucp_request_free(request);
 
 }
