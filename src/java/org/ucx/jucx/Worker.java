@@ -12,6 +12,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import sun.nio.ch.DirectBuffer;
+
 /**
  * Worker is the object representing a local communication resource such as
  * a network interface or host channel adapter port.
@@ -25,7 +27,7 @@ public class Worker {
 	public final static long DEFAULT_TAG		= -1L;
 	public final static long DEFAULT_REQ_ID 	= -1L;
 	
-	private static AtomicInteger OutstandingRequests = new AtomicInteger(0);
+	private AtomicInteger OutstandingRequests = new AtomicInteger(0);
 	
 	// for synchronized blocks
 	private Object mutex = new Object();
@@ -50,7 +52,7 @@ public class Worker {
 	 * @param 	maxCompletions
 	 * 			Number of max un-handled completions
 	 */
-	public Worker(Context ctx, Callbacks cb, int maxCompletions) {
+	public Worker(Context ctx, Callbacks cb, int maxCompletions /*TODO - the Java 8 version of callbacks, Consumer<Long> cb*/) {
 		ucpContext = ctx;
 		callback = cb;
 		int maxInBytes = maxCompletions << 3;
@@ -90,7 +92,7 @@ public class Worker {
 	
 	/**
 	 * Worker posts a receive request for an event with matching tag
-	 * (filtered by tagMask) at length msgLen. In case of success - msg will
+	 * (filtered by tagMask) at length buffLen. In case of success - buff will
 	 * be set accordingly.
 	 * 
 	 * @param 	tag
@@ -99,10 +101,10 @@ public class Worker {
 	 * @param 	tagMask
 	 * 			Bit mask for the comparison of received and expected tag
 	 * 
-	 * @param 	msg
+	 * @param 	buff
 	 *			Buffer to fill with received data 
 	 * 
-	 * @param 	msgLen
+	 * @param 	buffLen
 	 * 			Number of bytes to receive
 	 * 
 	 * @param 	reqID
@@ -111,25 +113,25 @@ public class Worker {
 	 * @return
 	 * 		   -1 - in case of an error
 	 * 			0 - in case the request is not completed
-	 * 			o.w. - request succeeded, message is in buffer msg
+	 * 			o.w. - request succeeded, message is in buffer buff
 	 * 
 	 * @throws 	BufferOverflowException
-	 * 			If there is insufficient space in this buffer (msgLen > msg.remaining())
+	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(long tag, long tagMask, ByteBuffer msg, int msgLen, long reqID) {
-		int cnt = recvMessage(tag, tagMask, msg, msgLen, reqID);
+	public int recvMessageAsync(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
+		int cnt = recvMessage(tag, tagMask, buff, buffLen, reqID);
 		setCounter(cnt);
 		return cnt;
 	}
 	
 	/**
 	 * Worker posts a receive request for an event with tag = -1. Same as calling
-	 * {@code recvMessageAsync(-1, -1, msg, msgLen, reqID)}.
+	 * {@code recvMessageAsync(-1, -1, buff, buffLen, reqID)}.
 	 * 
-	 * @param 	msg
+	 * @param 	buff
 	 *			Buffer to fill with received data 
 	 * 
-	 * @param 	msgLen
+	 * @param 	buffLen
 	 * 			Number of bytes to receive
 	 * 
 	 * @param 	reqID
@@ -138,18 +140,18 @@ public class Worker {
 	 * @return
 	 * 		   -1 - in case of an error
 	 * 			0 - in case the request is not completed
-	 * 			o.w. - request succeeded, message is in buffer msg
+	 * 			o.w. - request succeeded, message is in buffer buff
 	 * 
 	 * @throws 	BufferOverflowException
-	 * 			If there is insufficient space in this buffer (msgLen > msg.remaining())
+	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(ByteBuffer msg, int msgLen, long reqID) {
-		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, msg, msgLen, reqID);
+	public int recvMessageAsync(ByteBuffer buff, int buffLen, long reqID) {
+		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, reqID);
 	}
 	
 	/**
 	 * Worker posts a receive request (with id = -1, i.e. doesn't invokes the callback)
-	 * Same as calling {@code recvMessageAsync(tag, tagMask, msg, msgLen, -1)}.
+	 * Same as calling {@code recvMessageAsync(tag, tagMask, buff, buffLen, -1)}.
 	 * 
 	 * @param 	tag
 	 * 			Message tag to expect
@@ -157,44 +159,44 @@ public class Worker {
 	 * @param 	tagMask
 	 * 			Bit mask for the comparison of received and expected tag
 	 * 
-	 * @param 	msg
+	 * @param 	buff
 	 *			Buffer to fill with received data 
 	 * 
-	 * @param 	msgLen
+	 * @param 	buffLen
 	 * 			Number of bytes to receive
 	 * 
 	 * @return
 	 * 		   -1 - in case of an error
 	 * 			0 - in case the request is not completed
-	 * 			o.w. - request succeeded, message is in buffer msg
+	 * 			o.w. - request succeeded, message is in buffer buff
 	 * 
 	 * @throws 	BufferOverflowException
-	 * 			If there is insufficient space in this buffer (msgLen > msg.remaining())
+	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(long tag, long tagMask, ByteBuffer msg, int msgLen) {
-		return recvMessageAsync(tag, tagMask, msg, msgLen, DEFAULT_REQ_ID);
+	public int recvMessageAsync(long tag, long tagMask, ByteBuffer buff, int buffLen) {
+		return recvMessageAsync(tag, tagMask, buff, buffLen, DEFAULT_REQ_ID);
 	}
 	
 	/**
 	 * Worker posts a receive request for an event with tag = -1 and a don't care reqID.
-	 * Same as calling {@code recvMessageAsync(-1, -1, msg, msgLen, -1)}.
+	 * Same as calling {@code recvMessageAsync(-1, -1, buff, buffLen, -1)}.
 	 * 
-	 * @param 	msg
+	 * @param 	buff
 	 *			Buffer to fill with received data 
 	 * 
-	 * @param 	msgLen
+	 * @param 	buffLen
 	 * 			Number of bytes to receive
 	 * 
 	 * @return
 	 * 		   -1 - in case of an error
 	 * 			0 - in case the request is not completed
-	 * 			o.w. - request succeeded, message is in buffer msg
+	 * 			o.w. - request succeeded, message is in buffer buff
 	 * 
 	 * @throws 	BufferOverflowException
-	 * 			If there is insufficient space in this buffer (msgLen > msg.remaining())
+	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(ByteBuffer msg, int msgLen) {
-		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, msg, msgLen, DEFAULT_REQ_ID);
+	public int recvMessageAsync(ByteBuffer buff, int buffLen) {
+		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, DEFAULT_REQ_ID);
 	}
 	
 	/**
@@ -292,7 +294,9 @@ public class Worker {
 		if (msgLen > msg.remaining())
 			throw new BufferUnderflowException();
 		
-		int sent = 0;
+		long addr = ((DirectBuffer)msg).address();
+		int sent = Bridge.sendMsgAsync(ep, tag, addr, msgLen, reqID);
+
 //		OutstandingRequests.incrementAndGet();
 		
 		//TODO: test w/o
@@ -300,7 +304,7 @@ public class Worker {
 //		{
 			//TODO: no if
 //			if (msg.isDirect()) {
-				sent = Bridge.sendMsgAsync(ep, tag, msg, msgLen, reqID);
+//				sent = Bridge.sendMsgAsync(ep, tag, ((DirectBuffer)msg).address(), msgLen, reqID);
 //			}
 //			else {
 //				sent = Bridge.sendMsgAsync(ep, tag, msg.array(), msgLen, reqID);
@@ -312,8 +316,8 @@ public class Worker {
 		return sent;
 	}
 	
-	private int recvMessage(long tag, long tagMask, ByteBuffer msg, int msgLen, long reqID) {
-		if (msgLen > msg.remaining())
+	private int recvMessage(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
+		if (buffLen > buff.remaining())
 			throw new BufferOverflowException();
 		
 		int rcvd = 0;
@@ -322,7 +326,7 @@ public class Worker {
 //		synchronized (mutex)
 //		{
 //			if (msg.isDirect()) {
-				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg, msgLen, reqID);
+				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, buff, buffLen, reqID);
 //			}
 //			else {
 //				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg.array(), msgLen, reqID);
@@ -358,6 +362,7 @@ public class Worker {
 	 * The Callbacks interface must be implemented in-order to create a Worker.
 	 * Worker will invoke the implemented method whenever a request is completed.
 	 */
+	@FunctionalInterface
 	public static interface Callbacks {
 		
 		/**

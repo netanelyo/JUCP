@@ -16,18 +16,20 @@ public:
 
 	~Msg() { if (allocated) free(buffer); }
 
-	void* getBuffer() { return buffer; }
+	void* getBuffer() const { return buffer; }
 
-	jbyteArray getJavaBuffer() { return jbuffer; }
+	void set(void* buff, int size, jbyteArray jbuff = nullptr);
 
-	int size() { return buffSize; }
+	jbyteArray getJavaBuffer() const { return jbuffer; }
+
+	int size() const { return buffSize; }
 
 	int recvMsgAsync(jlong jworker, jlong jtag, jlong jtagMask, int msgLen,
 			jlong reqId);
 
 	int sendMsgAsync(jlong jep, jlong jworker, jlong jtag, int msgLen, jlong reqId);
 
-	bool isAllocated() { return allocated; }
+	bool isAllocated() const { return allocated; }
 
 
 private:

@@ -53,3 +53,4 @@ src/java/org/accelio
 /docs
 manifest.txt
 version
+/target/

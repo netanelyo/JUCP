@@ -33,7 +33,8 @@ lib_dir = dir+'/src/lib'
 docs_dir = dir+'/docs'
 src_java_dir = dir+'/src/java'
 src_java_files = dir+'/java_files.txt'
-os.system('find ' + src_java_dir + ' -name \"*.java\" > ' + src_java_files)
+find_cmd = 'find {} -name \"*.java\" > {}'
+os.system(find_cmd.format(src_java_dir, src_java_files))
 native_libs = 'libjucp.so libucp.so libucs.so libuct.so'
 
 
@@ -43,12 +44,14 @@ def usage():
     print "\t-s  | --strip                      don't strip debug symbols"
     print "\t-e  | --examples                   don't build example code"
     print "\t-u  | --ucx                        don't build UCX library"
+    print "\t-t  | --tests                      don't build test code"
 
-options, remainder = getopt.gnu_getopt(sys.argv[1:], '?hseu', ['help', 'strip', 'examples', 'ucx'])
+options, remainder = getopt.gnu_getopt(sys.argv[1:], '?hseut', ['help', 'strip', 'examples', 'ucx', 'tests'])
 
 strip_cmd = "strip -s"
 examples = True
 ucx = True
+tests = True
 git_version = 0
 status1 = 0
 
@@ -62,6 +65,8 @@ for opt, arg in options:
 		examples = False
 	elif opt in ('-u', '--ucx'):
 		ucx = False
+	elif opt in ('-t', '--tests'):
+		tests = False
 	else:
 		usage()
 		assert False, "unhandled option"
@@ -128,6 +133,8 @@ if status != 0:
 os.chdir(dir)
 cmd = 'cp manifest.template ' + dir + '/manifest.txt'
 os.system(cmd)
+cmd = 'cp manifest_perf.template ' + dir + '/manifest_perf.txt'
+os.system(cmd)
 cmd = 'sed -i \"s/Implementation-Version: .*/Implementation-Version: ' + str(git_version) + '/\" ' + dir + '/manifest.txt'
 os.system(cmd)
 
@@ -152,6 +159,24 @@ if examples:
 	
 	cmd = 'javac -cp ' + dependency + ' -d ' + bin_dir + ' ' + example_java_files
 	os.system(cmd)
+
+if tests:
+	os.chdir(dir)
+        src_path = '/org/ucx/jucx/tests'
+	test_java_dir = dir + '/src/test'
+	test_java_files = dir + '/test_files.txt'
+	find_cmd2 = find_cmd + ' -not -name \"Perftest.java\"'
+	os.system(find_cmd2.format(test_java_dir, test_java_files))
+        os.makedirs(bin_dir + src_path)
+        cmd = 'javac -classpath ' + dependency + ' -d ' + bin_dir + ' @' + test_java_files
+        os.system(cmd)
+	
+	cmd = 'jar -cvfm perf.jar ' + dir + '/manifest_perf.txt'
+	os.system(cmd)
+	dependency += ':' + bin_dir + '/perf.jar'
+	
+	cmd = 'javac -classpath ' + dependency + ' -d ' + bin_dir + ' '
+
 
 sys.exit(0)
 

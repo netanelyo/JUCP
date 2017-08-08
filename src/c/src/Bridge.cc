@@ -244,7 +244,7 @@ Java_org_ucx_jucx_Bridge_recvMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
 	request = (Request*) ucp_tag_recv_nb(ucp_worker, buff, msgLen,
 			ucp_dt_make_contig(1), tag, mask, UcpRequest::RequestHandler::recvRequestHandler);
 
-	return UcpRequest::requestErrorCheck(request, worker, nullptr, reqId);
+	return UcpRequest::requestErrorCheck(request, worker, nullptr, nullptr, reqId);
 
 //	Msg* msg = new Msg(buff, msgLen);
 //
@@ -307,26 +307,26 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative(JNIEnv *env,
 JNIEXPORT jint JNICALL
 Java_org_ucx_jucx_Bridge_sendMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
 		(JNIEnv *env, jclass cls, jlong jep, jlong jworker, jlong jtag,
-				jobject jmsg, jint len, jlong reqId) {
+				jlong jmsg, jint len, jlong reqId) {
 	void* buff;
 	int ret;
 	int msgLen = int(len);
 
-	buff = env->GetDirectBufferAddress(jmsg);
+	buff = (void*)jmsg;
 	if (!buff) {
 		std::cout << "Error: msg is null" << std::endl;
 		return -1;
 	}
 
 	ucp_ep_h ep = (ucp_ep_h) jep;
-	Request* request = 0;
+	Request* request = nullptr;
 	ucp_tag_t tag = (ucp_tag_t) jtag;
 	Worker* worker = (Worker*) jworker;
 
 	request = (Request*) ucp_tag_send_nb(ep, buff, msgLen,
 			ucp_dt_make_contig(1), tag, UcpRequest::RequestHandler::sendRequestHandler);
 
-	return UcpRequest::requestErrorCheck(request, worker, nullptr, reqId);
+	return UcpRequest::requestErrorCheck(request, worker, nullptr, nullptr, reqId);
 
 //	Msg* msg = new Msg(buff, msgLen);
 //

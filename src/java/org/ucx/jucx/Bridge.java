@@ -84,15 +84,15 @@ public class Bridge {
 		return createEpNative(worker.getNativeID(), addr.getWorkerAddress());
 	}
 
-	private static native int sendMsgAsyncNative(long epID, long workerID, long tag, ByteBuffer msg,
+	private static native int sendMsgAsyncNative(long epID, long workerID, long tag, long addr,
 											int msgLength, long reqID);
 	
 	private static native int sendMsgAsyncNative(long epID, long workerID, long tag, byte[] msg,
 			int msgLength, long reqID);
 	
-	static int sendMsgAsync(EndPoint ep, long tag, ByteBuffer msg, int msgLength, long reqID) {
+	static int sendMsgAsync(EndPoint ep, long tag, long addr, int msgLength, long reqID) {
 		return sendMsgAsyncNative(ep.getNativeID(), ep.getWorker().getNativeID(),
-																	tag, msg, msgLength, reqID);
+																	tag, addr, msgLength, reqID);
 	}
 	
 	static int sendMsgAsync(EndPoint ep, long tag, byte[] msg, int msgLength, long reqID) {

@@ -6,4 +6,4 @@ TODO: add description
 1. Download: git clone https://github.com/netanelyo/JUCP.git</br>
 2. Move into folder: cd JUCP</br>
 3. Set JAVA_HOME: export JAVA_HOME=/usr/lib/jvm/java-1.x.x-openjdk (x.x - according to java version)</br>
-4. Build: ./build.sh (this pulls the relevant C level UCX library and builds everything you need)</br>
+4. Build: python build.py (pulls the relevant C level UCX library and builds everything you need)</br>

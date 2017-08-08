@@ -95,7 +95,7 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative
  * Signature: (JJJLjava/nio/ByteBuffer;IJ)I
  */
 JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_sendMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
-  (JNIEnv *, jclass, jlong, jlong, jlong, jobject, jint, jlong);
+  (JNIEnv *, jclass, jlong, jlong, jlong, jlong, jint, jlong);
 
 /*
  * Class:     org_ucx_jucx_Bridge

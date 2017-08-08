@@ -13,6 +13,7 @@
  */
 class UcpRequest {
 public:
+
 	/**
 	 * request struct
 	 *
@@ -46,8 +47,8 @@ public:
 		static void commonHandler(void *request);
 	};
 
-	static int requestErrorCheck(request_t* request, Worker* worker, Msg* msg,
-			jlong reqId);
+	static int requestErrorCheck(request_t* request, Worker* worker, ucp_tag_recv_info* info,
+				Msg* msg, jlong reqId);
 
 private:
 	UcpRequest() {}

@@ -38,19 +38,17 @@ void UcpRequest::RequestHandler::recvRequestHandler(void *request, ucs_status_t 
 //		env->SetByteArrayRegion(msg->getJavaBuffer(), 0, msg->size(), (jbyte*)msg->getBuffer());
 }
 
-int UcpRequest::requestErrorCheck(request_t* request, Worker* worker, Msg* msg, jlong reqId) {
-	if (UCS_PTR_IS_ERR(request)) {
-		std::cout << "unable to send/recv UCX message" << std::endl;
-		return -1; // An error occurred
-	}
-	else if (UCS_PTR_STATUS(request) != UCS_OK) {
+int UcpRequest::requestErrorCheck(request_t* request, Worker* worker,
+								ucp_tag_recv_info* info, Msg* msg, jlong reqId)
+{
+	if (ucp_request_test(request, info) == UCS_INPROGRESS) {
 		// Async handling - request still in progress
 		request->requestID 	= (uint64_t) reqId;
 		request->worker 	= worker;
 		request->msg 		= msg;
 		return 0;
 	}
-	else {
+	else if (ucp_request_test(request, info) == UCS_OK) {
 		// First, check if there are any events to be processed in the list
 		worker->moveRequestsToEventQueue();
 
@@ -58,5 +56,8 @@ int UcpRequest::requestErrorCheck(request_t* request, Worker* worker, Msg* msg, 
 		worker->putInEventQueue((uint64_t) reqId);
 
 		return worker->getEventCnt();
+	}
+	else {
+		return -1; // An error occurred
 	}
 }

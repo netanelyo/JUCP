@@ -5,8 +5,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
-import java.nio.channels.SocketChannel;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.stream.LongStream;
@@ -16,8 +14,7 @@ import org.ucx.jucx.Worker;
 import org.ucx.jucx.WorkerAddress;
 import org.ucx.jucx.examples.ExampleUtils.BandwidthCallback;
 import org.ucx.jucx.examples.ExampleUtils.PingPongCallback;
-import org.ucx.jucx.utils.Utils;
-import org.ucx.jucx.utils.Utils.Time;
+import org.ucx.jucx.utils.Time;
 
 public class UCPClient extends UCPBase {
 	
@@ -228,18 +225,18 @@ public class UCPClient extends UCPBase {
 		
 		Arrays.sort(results);
 		String format = "%-25s = %-10s";
-		System.out.println(String.format(format, "---> <MAX> observation", printable(Time.toUsecs(results[results.length - 1]) / factor)));
+		System.out.println(String.format(format, "---> <MAX> observation", printable(Time.nanosToUsecs(results[results.length - 1]) / factor)));
 		for (double per : percentile) {
 			int index = (int)(0.5 + per*iters) - 1;
-			System.out.println(String.format(format, "---> percentile " + per, printable(Time.toUsecs(results[index]) / factor)));
+			System.out.println(String.format(format, "---> percentile " + per, printable(Time.nanosToUsecs(results[index]) / factor)));
 		}
-		System.out.println(String.format(format, "---> <MIN> observation", printable(Time.toUsecs(results[0]) / factor)));
+		System.out.println(String.format(format, "---> <MIN> observation", printable(Time.nanosToUsecs(results[0]) / factor)));
 		
 		System.out.println();
 		
-		double secs = Time.toSecs(total);
+		double secs = Time.nanosToSecs(total);
 		double totalMBytes = (double)size * iters / Math.pow(2, 20);
-		System.out.println("average latency (usec): " + printable(Time.toUsecs(total) / iters / factor));
+		System.out.println("average latency (usec): " + printable(Time.nanosToUsecs(total) / iters / factor));
 		System.out.println("message rate (msg/s): " + (int)(iters/secs));
 		System.out.println("bandwidth (MB/s) : " + printable(totalMBytes/secs));
 	}

@@ -1,0 +1,31 @@
+package org.ucx.jucx.utils;
+
+import org.ucx.jucx.Bridge;
+
+public final class Time {
+	
+	private static final double SECOND = 1000000000.0;
+	private static final double U_SECOND = 1000.0;
+	
+	private Time() {}
+	
+	public static long nanoTime() {
+		return Bridge.getTime();
+	}
+
+	public static long cycle() {
+		return Bridge.getCycle();
+	}
+	
+	public static long secsToNanos(double secs) {
+		return (long)(secs * SECOND);
+	}
+	
+	public static double nanosToUsecs(long time) {
+		return time/U_SECOND;
+	}
+	
+	public static double nanosToSecs(long time) {
+		return time/SECOND;
+	}
+}

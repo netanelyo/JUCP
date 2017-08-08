@@ -13,7 +13,7 @@ import org.ucx.jucx.examples.ExampleContext.TcpConnection;
 import org.ucx.jucx.examples.ExampleContext.UcpObjects;
 import org.ucx.jucx.examples.ExampleUtils.BandwidthCallback;
 import org.ucx.jucx.examples.ExampleUtils.PingPongCallback;
-import org.ucx.jucx.utils.Utils.Options;
+import org.ucx.jucx.utils.Options;
 
 public abstract class UCPBase {
 	

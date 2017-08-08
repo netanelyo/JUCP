@@ -17,7 +17,8 @@ int Msg::recvMsgAsync(jlong jworker, jlong jtag, jlong jtagMask, int msgLen,
 	request = (Request*) ucp_tag_recv_nb(ucp_worker, this->buffer, msgLen,
 			ucp_dt_make_contig(1), tag, mask, UcpRequest::RequestHandler::recvRequestHandler);
 
-	return UcpRequest::requestErrorCheck(request, worker, this, reqId);
+	return 0;
+//	return UcpRequest::requestErrorCheck(request, worker, this, reqId);
 }
 
 int Msg::sendMsgAsync(jlong jep, jlong jworker, jlong jtag, int msgLen,
@@ -30,5 +31,13 @@ int Msg::sendMsgAsync(jlong jep, jlong jworker, jlong jtag, int msgLen,
 	request = (Request*) ucp_tag_send_nb(ep, this->buffer, msgLen,
 			ucp_dt_make_contig(1), tag, UcpRequest::RequestHandler::sendRequestHandler);
 
-	return UcpRequest::requestErrorCheck(request, worker, this, reqId);
+	return 0;
+//	return UcpRequest::requestErrorCheck(request, worker, this, reqId);
+}
+
+void Msg::set(void* buff, int size, jbyteArray jbuff) {
+	 buffer = buff;
+	 buffSize = size;
+	 jbuffer = jbuff;
+	 if (jbuffer) allocated = true;
 }

@@ -12,7 +12,7 @@ import org.ucx.jucx.WorkerAddress;
 import org.ucx.jucx.examples.ExampleContext.TcpConnection;
 import org.ucx.jucx.examples.ExampleUtils.BandwidthCallback;
 import org.ucx.jucx.examples.ExampleUtils.PingPongCallback;
-import org.ucx.jucx.utils.Utils;
+import org.ucx.jucx.utils.StringUtils;
 
 public class UCPServer extends UCPBase {
 	
@@ -170,7 +170,7 @@ public class UCPServer extends UCPBase {
 			ByteBuffer in = bufferPool.getInputBuffer();
 			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, i);
 			if (print)
-				System.out.println(Utils.getByteBufferAsString(in));
+				System.out.println(StringUtils.getByteBufferAsString(in));
 			
 			while (!cb.isReady())
 				worker.progress();
