@@ -5,8 +5,17 @@
 #ifndef UCPREQUEST_H_
 #define UCPREQUEST_H_
 
-#include "Worker.h"
 #include "Msg.h"
+#include <cstdint>
+
+extern "C" {
+#include <ucs/type/status.h>
+#include <ucp/api/ucp_def.h>
+}
+
+class Worker;
+
+
 
 /**
  * class to hold the request struct and request handlers
@@ -25,7 +34,10 @@ public:
 	struct request_t {
 		uint64_t 	requestID;
 		Worker* 	worker;
-		Msg* 		msg;
+//		Msg* 		msg;
+		int			done;
+		request_t*	next;
+		int 		size;
 	};
 
 	/**
@@ -47,14 +59,17 @@ public:
 		static void commonHandler(void *request);
 	};
 
-	static int requestErrorCheck(request_t* request, Worker* worker, ucp_tag_recv_info* info,
+	static int requestErrorCheck(request_t* request, Worker* worker,
 				Msg* msg, jlong reqId);
 
+	static void freeRequest(request_t* request);
+
 private:
+	static void handleCompletion(request_t* request);
 	UcpRequest() {}
 };
 
-typedef UcpRequest::request_t Request;
+using Request = UcpRequest::request_t; // TODO: c++11
 
 
 #endif /* UCPREQUEST_H_ */

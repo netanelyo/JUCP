@@ -3,7 +3,7 @@
  * See file LICENSE for terms.
  */
 #include "Msg.h"
-#include "UcpRequest.h"
+#include "Worker.h"
 
 
 int Msg::recvMsgAsync(jlong jworker, jlong jtag, jlong jtagMask, int msgLen,

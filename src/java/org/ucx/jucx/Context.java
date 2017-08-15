@@ -23,9 +23,10 @@ public class Context {
 	/**
 	 * Retrieves the application context (singleton).
 	 * 
-	 * @param params - the UCP parameters to be passed to context initialization.
+	 * @param 	params
+	 * 			the UCP parameters to be passed to context initialization.
 	 * 
-	 * @return application context
+	 * @return 	application context
 	 */
 	public static Context getInstance(UCPParams params) {
 		if (CTX == null) {
@@ -37,6 +38,9 @@ public class Context {
 		return CTX;
 	}
 	
+	/**
+	 * Releases (native) Context
+	 */
 	public void close() {
 		Bridge.closeCtx(this);
 	}

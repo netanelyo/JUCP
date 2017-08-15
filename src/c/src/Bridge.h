@@ -24,7 +24,6 @@ extern "C" {
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createCtxNative
   (JNIEnv *, jclass, jlong, jlong);
 
-
 /*
  * Class:     org_ucx_jucx_Bridge
  * Method:    closeCtxNative
@@ -68,10 +67,10 @@ JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_releaseWorkerNative
 /*
  * Class:     org_ucx_jucx_Bridge
  * Method:    recvMsgAsyncNative
- * Signature: (JJJLjava/nio/ByteBuffer;IJ)I
+ * Signature: (JJJJIJ)I
  */
-JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_recvMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
-  (JNIEnv *, jclass, jlong, jlong, jlong, jobject, jint, jlong);
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_recvMsgAsyncNative__JJJJIJ
+  (JNIEnv *, jclass, jlong, jlong, jlong, jlong, jint, jlong);
 
 /*
  * Class:     org_ucx_jucx_Bridge
@@ -92,9 +91,9 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createEpNative
 /*
  * Class:     org_ucx_jucx_Bridge
  * Method:    sendMsgAsyncNative
- * Signature: (JJJLjava/nio/ByteBuffer;IJ)I
+ * Signature: (JJJJIJ)I
  */
-JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_sendMsgAsyncNative__JJJLjava_nio_ByteBuffer_2IJ
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_sendMsgAsyncNative__JJJJIJ
   (JNIEnv *, jclass, jlong, jlong, jlong, jlong, jint, jlong);
 
 /*
@@ -137,6 +136,21 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_getTimeNative
 JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_getCycleNative
   (JNIEnv *, jclass);
 
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    workerWaitNative
+ * Signature: (JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_ucx_jucx_Bridge_workerWaitNative
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     org_ucx_jucx_Bridge
+ * Method:    workerFlushNative
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_org_ucx_jucx_Bridge_workerFlushNative
+  (JNIEnv *, jclass, jlong, jint);
 
 }
 

@@ -10,11 +10,19 @@ extern "C" {
 }
 
 #include <list>
+#include <unordered_set>
 #include <cstddef>
+#include <jni.h>
+
+//TODO
+#include <iostream>
+
+
+#include "UcpRequest.h"
 
 class Worker {
 public:
-	Worker(ucp_context_h ctx, ucp_worker_params_t params, uint64_t cap);
+	Worker(ucp_context_h ctx, ucp_worker_params_t params, uint32_t cap);
 
 	~Worker() { deleteWorker(); }
 
@@ -51,6 +59,18 @@ public:
 			ucp_worker_progress(ucpWorker);
 	}
 
+//	bool inUse(jlong addr) { return buffersInUse.find(addr) != buffersInUse.end(); }
+//
+//	void addBuffer(jlong addr) { buffersInUse.insert(addr); }
+
+	void addToList(Request* req);
+
+	int numOfRequests() const;
+
+	int wait(int events);
+
+	void flush(int events);
+
 private:
 	ucp_worker_h 		ucpWorker;
 	ucp_address_t*		workerAddress;
@@ -59,8 +79,14 @@ private:
 	uint32_t			queueSize;
 	uint64_t*			eventQueue;
 	std::list<uint64_t> pendingRequests;
+	Request*			head;
+//	std::unordered_set<jlong>	buffersInUse;
+
+	void freeRequests();
 
 	void deleteWorker();
+
+	int freeAndSetCnt();
 
 	bool hasPendingRequests() {
 		return !(pendingRequests.empty());

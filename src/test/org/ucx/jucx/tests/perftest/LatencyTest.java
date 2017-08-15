@@ -3,36 +3,26 @@ package org.ucx.jucx.tests.perftest;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.ucx.jucx.Worker.Callbacks;
 import org.ucx.jucx.WorkerAddress;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfParams;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.TcpConnection;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.UcpObjects;
-import org.ucx.jucx.utils.StringUtils;
+import org.ucx.jucx.utils.Utils;
 
 public abstract class LatencyTest extends PerftestBase {
 	
 	protected ByteBuffer sendBuff;
 	protected ByteBuffer recvBuff;
 	
-	protected abstract void runPingPong(int iters);
-	
-	protected void warmup() {
-		runPingPong(ctx.params.warmupIter);
-	}
+	protected abstract void execute(int iters);
 	
 	@Override
 	protected void run(PerfParams params) {
-		super.run(params);
+		ctx = new PerfContext(params);
 		initBuffers();
-		
-		TcpConnection tcp = params.tcpConn;
-		
-		barrier(tcp);
-		warmup();
-		barrier(tcp);
-		
-		runPingPong(params.maxIter);
-		barrier(tcp);
+		ctx.cb = new Callback();
+		super.run(params);
 	}
 	
 	@Override
@@ -60,12 +50,14 @@ public abstract class LatencyTest extends PerftestBase {
 		sendBuff = ByteBuffer.allocateDirect(s);
 		recvBuff = ByteBuffer.allocateDirect(s);
 		
-		String msg = StringUtils.generateRandomString(s);
-		sendBuff.put(msg.getBytes());
+		byte[] msg = Utils.generateRandomBytes(s);
+		sendBuff.put(msg);
+		sendBuff.rewind();
 	}
 	
-	private void barrier(TcpConnection tcp) {
-		tcp.barrier(this instanceof LatencyServer);
+	static class Callback implements Callbacks {
+		@Override
+		public void requestHandle(long requestId) { }
 	}
 }
 

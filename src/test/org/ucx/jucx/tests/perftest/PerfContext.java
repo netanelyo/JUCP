@@ -17,16 +17,6 @@ public class PerfContext {
 		measure = new PerfMeasurements(params.maxIter);
 		print = params.print;
 	}
-	
-	public static class Callback implements Callbacks {
-		int cnt = 0;
-		
-		@Override
-		public void requestHandle(long requestId) {
-			cnt++;
-		}
-	}
-	
 }
 
 

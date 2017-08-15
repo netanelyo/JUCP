@@ -64,8 +64,8 @@ public class UCPClient extends UCPBase {
 		
 		out.clear();
 		for (int i = 0; i < warmup; i++) {
-			ep.sendMessageAsync(tag, out, warmupMsgSize, 0);
-			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, warmupMsgSize, 1);
+			ep.tagSendAsync(tag, out, warmupMsgSize, 0);
+			worker.tagRecvAsync(tag, Worker.DEFAULT_TAG_MASK, in, warmupMsgSize, 1);
 			
 			while (cb.last < events)
 				worker.progress();
@@ -86,7 +86,7 @@ public class UCPClient extends UCPBase {
 		for (int i = 0; i < warmup; i++) {
 			ByteBuffer out = bufferPool.getOutputBuffer();
 			out.clear();
-			ep.sendMessageAsync(tag, out, warmupMsgSize,i);
+			ep.tagSendAsync(tag, out, warmupMsgSize,i);
 			
 			while (!cb.isReady())
 				worker.progress();
@@ -117,7 +117,7 @@ public class UCPClient extends UCPBase {
 			ByteBuffer out = bufferPool.getOutputBuffer();
 			out.clear();
 			out.putInt(pos, i);
-			ep.sendMessageAsync(tag, out, size, i);
+			ep.tagSendAsync(tag, out, size, i);
 			
 			while (!cb.isReady())
 				worker.progress();
@@ -168,9 +168,9 @@ public class UCPClient extends UCPBase {
 			
 			t1 = Time.nanoTime();
 			
-			ep.sendMessageAsync(tag, out, size, req);
+			ep.tagSendAsync(tag, out, size, req);
 
-			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, req + 1);
+			worker.tagRecvAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, req + 1);
 //			if (print)
 //				System.out.println(Utils.getByteBufferAsString(in));
 

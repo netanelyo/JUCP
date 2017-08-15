@@ -36,6 +36,15 @@ public class UCPParams {
 	private long features;
 	private long fieldMask;
 	
+	/**
+	 * Creates a new object representing ucp_params
+	 * 
+	 * @param 	feats
+	 * 			Features flags
+	 * 
+	 * @param 	mask
+	 * 			Field mask flags
+	 */
 	public UCPParams(long feats, long mask) {
 		features 	= feats;
 		fieldMask 	= mask;

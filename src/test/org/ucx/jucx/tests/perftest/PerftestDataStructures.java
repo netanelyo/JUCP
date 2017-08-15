@@ -38,7 +38,7 @@ public class PerftestDataStructures {
 		PerfDataType	sendType;		
 		PerfDataType	recvType;
 		UcpObjects 		ucp = null;
-		String 			fileName = null;
+		String 			filename = null;
 		TcpConnection	tcpConn = null;
 		int 			events;
 		boolean			print;
@@ -47,7 +47,7 @@ public class PerftestDataStructures {
 			testType = PerfTestType.UCP_TEST_PINGPONG;
 			maxOutstanding = 1;
 			warmupIter = 10000;
-			maxIter = 100000;
+			maxIter = 1000000;
 			size = 64;
 			events = 200;
 			sendType = PerfDataType.UCP_DATATYPE_CONTIG;
@@ -90,6 +90,13 @@ public class PerftestDataStructures {
 			times = new long[size];
 		}
 		
+		//TODO
+		void setMeasurement(int index, int iters) {
+			this.iters += iters;
+			setTimeSample(index);
+			prevTime = currTime;
+		}
+		
 		void setCurrentMeasurement(int index, int iters, int msgs, long bytes) {
 			setSpaceSample(iters, msgs, bytes);
 			setTimeSample(index);
@@ -130,6 +137,12 @@ public class PerftestDataStructures {
 		public void setEndPoint(WorkerAddress remoteAddr) {
 			endPoint = worker.createEndPoint(remoteAddr);
 		}
+		
+		public void close() {
+			worker.flush();
+			worker.close();
+			ctx.close();
+		}
 	}
 	
 	public static class TcpConnection {
@@ -140,11 +153,11 @@ public class PerftestDataStructures {
 		TcpConnection(Socket socket) {
 			sock = socket;
 			try {
-				inStream = new ObjectInputStream(sock.getInputStream());
 				outStream = new ObjectOutputStream(sock.getOutputStream());
+				inStream = new ObjectInputStream(sock.getInputStream());
 			} catch (IOException e) {
-				System.out.println("TcpConnection");
 				e.printStackTrace();
+				System.exit(1);
 			}
 		}
 		
@@ -160,7 +173,6 @@ public class PerftestDataStructures {
 		}
 		
 		void write(Object s) throws IOException {
-			System.out.println("Writing");
 			outStream.writeObject(s);
 		}
 		
@@ -184,7 +196,7 @@ public class PerftestDataStructures {
 					clientBarrier();
 			}
 			catch (IOException e) {
-				System.out.println("barrier");
+				e.printStackTrace();
 				System.exit(1);
 			}
 		}
@@ -192,6 +204,7 @@ public class PerftestDataStructures {
 		private void clientBarrier() throws IOException {
 			int x = 0;
 			outStream.write(x);
+			outStream.flush();
 			x = inStream.read();
 		}
 
@@ -199,6 +212,7 @@ public class PerftestDataStructures {
 			int x;
 			x = inStream.read();
 			outStream.write(x);
+			outStream.flush();
 		}
 	}
 }

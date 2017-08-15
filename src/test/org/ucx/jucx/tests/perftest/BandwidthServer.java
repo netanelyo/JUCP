@@ -2,6 +2,7 @@ package org.ucx.jucx.tests.perftest;
 
 import java.io.IOException;
 
+import org.ucx.jucx.Worker;
 import org.ucx.jucx.WorkerAddress;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfParams;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.TcpConnection;
@@ -24,4 +25,32 @@ public class BandwidthServer extends BandwidthTest {
 			System.exit(1);
 		}
 	}
+
+	@Override
+	protected void execute(int iters) {
+		Worker worker = ctx.ucpObj.worker;
+		PerfParams params = ctx.params;
+		int size = params.size;
+		
+		for (int i = 0; i < iters; i++) {
+			worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, buffers.get(), size, i);
+			
+			while (!buffers.ready())
+				worker.progress();
+		}
+		
+		if (iters == params.maxIter)
+			while (!buffers.initialized())
+				worker.progress();
+	}
 }
+
+
+
+
+
+
+
+
+
+

@@ -22,7 +22,7 @@ public class Perftest {
 		String sep = System.lineSeparator();
 		str.append(sep + "Options:" + sep);
 		str.append("\t-p <port>          TCP port to listen on (default: 12345)" + sep);
-		str.append("\t-n <iterations>    number of iterations (default: 100000)" + sep);
+		str.append("\t-n <iterations>    number of iterations (default: 1000000)" + sep);
 		str.append("\t-s <size>          msg size in bytes (default: 64)" + sep);
 //		str.append("\t-t <tag>           request tag (default: 29592)" + sep);
 		str.append("\t-w <iterations>    number if warmup iterations (default: 10000; max.: iterations/10)" + sep);
@@ -88,7 +88,7 @@ public class Perftest {
 				break;
 				
 			case 'f':
-				params.fileName			= val;
+				params.filename			= val;
 				break;
 				
 			default:
@@ -96,7 +96,6 @@ public class Perftest {
 				usage();
 				System.exit(1);
 				break;
-			
 			}
 		}
 		
@@ -107,8 +106,8 @@ public class Perftest {
 	}
 	
 	private class TestContext {
-		int 			port		= 12345;
-		String 			server		= null;
+		int 			port	= 12345;
+		String 			server	= null;
 		PerfParams 		params;
 		
 		private TestContext() {
@@ -116,15 +115,16 @@ public class Perftest {
 		}
 	}
 	
-	private void setRTE() throws IOException {
+	private PerfParams setRTE() throws IOException {
 		TcpConnection tcp;
+		Socket sock;
 		if (isServer) {
 			ServerSocket servSock = new ServerSocket(ctx.port);
 			servSock.setReuseAddress(true);
 			
 			System.out.println("Waiting for connections...");
 			
-			Socket sock = servSock.accept();
+			sock = servSock.accept();
 			servSock.close();
 			
 			tcp = new TcpConnection(sock);
@@ -132,28 +132,42 @@ public class Perftest {
 			ctx.params = (PerfParams) tcp.read();
 		}
 		else {
-			Socket sock = new Socket(ctx.server, ctx.port);
-			System.out.println("Connected");
+			sock = new Socket(ctx.server, ctx.port);
 			tcp = new TcpConnection(sock);
-			System.out.println("Before write");
 			tcp.write(ctx.params);
 		}
 		
+		System.out.println("Connected to: " + sock.getInetAddress().getHostAddress());
+		
 		ctx.params.tcpConn = tcp;
+		
+		return ctx.params;
+	}
+	
+	private void printStartingMessage(PerfParams params) {
+		if (params.testType == PerfTestType.UCP_TEST_STREAM)
+			System.out.println("****   Bandwidth Test   ****");
+		else
+			System.out.println("*****   Latency Test   *****");
+		
+		System.out.println("# iterations: " + params.maxIter);
+		System.out.println("Message size: " + params.size);
 	}
 	
 	public static void main(String[] args) {
 		Perftest test = new Perftest();
 		test.parseArgs(args);
-		PerfParams params = test.ctx.params;
+		PerfParams params = null;
 		
 		try {
-			test.setRTE();
+			params = test.setRTE();
 		}
 		catch (IOException ioe) {
 			ioe.printStackTrace();
 			System.exit(1);
 		}
+		
+		test.printStartingMessage(params);
 		
 		PerftestBase perf;
 		
@@ -174,25 +188,7 @@ public class Perftest {
 		}
 		
 		perf.run(params);
+		perf.close();
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

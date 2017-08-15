@@ -12,7 +12,7 @@ import org.ucx.jucx.WorkerAddress;
 import org.ucx.jucx.examples.ExampleContext.TcpConnection;
 import org.ucx.jucx.examples.ExampleUtils.BandwidthCallback;
 import org.ucx.jucx.examples.ExampleUtils.PingPongCallback;
-import org.ucx.jucx.utils.StringUtils;
+import org.ucx.jucx.utils.Utils;
 
 public class UCPServer extends UCPBase {
 	
@@ -78,13 +78,13 @@ public class UCPServer extends UCPBase {
 		out.clear();
 		cb.last = 1;
 		for (int i = 0; i < warmup; i++) {
-			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, warmupMsgSize, 0);
+			worker.tagRecvAsync(tag, Worker.DEFAULT_TAG_MASK, in, warmupMsgSize, 0);
 			
 			while (cb.last < events)
 				worker.progress();
 			cb.last = 0;
 			
-			ep.sendMessageAsync(tag, out, warmupMsgSize, 1);
+			ep.tagSendAsync(tag, out, warmupMsgSize, 1);
 			
 		}
 		
@@ -103,7 +103,7 @@ public class UCPServer extends UCPBase {
 		
 		for (int i = 0; i < warmup; i++) {
 			ByteBuffer in = bufferPool.getInputBuffer();
-			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, i);
+			worker.tagRecvAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, i);
 			
 			while (!cb.isReady())
 				worker.progress();
@@ -133,7 +133,7 @@ public class UCPServer extends UCPBase {
 		out.clear();
 		long req = 0;
 		for (int i = 0; i < iters; i++) {
-			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, req);
+			worker.tagRecvAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, req);
 //			if (print)
 //				System.out.println(Utils.getByteBufferAsString(in));
 			
@@ -143,7 +143,7 @@ public class UCPServer extends UCPBase {
 			
 			// TODO: Move to cb
 //			out.putInt(pos, i);
-			ep.sendMessageAsync(tag, out, size, req + 1);
+			ep.tagSendAsync(tag, out, size, req + 1);
 			
 			req += 2;
 		}
@@ -168,9 +168,9 @@ public class UCPServer extends UCPBase {
 		
 		for (int i = 0; i < iters; i++) {
 			ByteBuffer in = bufferPool.getInputBuffer();
-			worker.recvMessageAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, i);
+			worker.tagRecvAsync(tag, Worker.DEFAULT_TAG_MASK, in, size, i);
 			if (print)
-				System.out.println(StringUtils.getByteBufferAsString(in));
+				System.out.println(Utils.getByteBufferAsString(in));
 			
 			while (!cb.isReady())
 				worker.progress();

@@ -54,3 +54,5 @@ src/java/org/accelio
 manifest.txt
 version
 /target/
+/.gradle/
+/eclipse_bin/

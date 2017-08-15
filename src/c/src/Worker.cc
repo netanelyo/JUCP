@@ -3,12 +3,15 @@
  * See file LICENSE for terms.
  */
 #include "Worker.h"
+#include "UcpRequest.h"
 #include <byteswap.h>
 #include <iostream>
 
-Worker::Worker(ucp_context_h ctx, ucp_worker_params_t params, uint64_t cap) :
+#define MAX_REQUESTS 8
+
+Worker::Worker(ucp_context_h ctx, ucp_worker_params_t params, uint32_t cap) :
 		workerAddress(nullptr), addressLength(0), eventCnt(0), queueSize(cap),
-		eventQueue(new uint64_t[cap]) {
+		eventQueue(new uint64_t[cap]), head(nullptr) {
 
 	ucs_status_t status;
 
@@ -19,6 +22,7 @@ Worker::Worker(ucp_context_h ctx, ucp_worker_params_t params, uint64_t cap) :
 
 void Worker::deleteWorker() {
 	delete[] eventQueue;
+	freeRequests();
 	ucp_worker_release_address(ucpWorker, workerAddress);
 	ucp_worker_destroy(ucpWorker);
 }
@@ -42,7 +46,7 @@ void Worker::putInEventQueue(uint64_t item) {
 }
 
 void Worker::moveRequestsToEventQueue() {
-	while (eventCnt < queueSize && this->hasPendingRequests()) {
+	while (eventCnt < queueSize && hasPendingRequests()) {
 		eventQueue[eventCnt++] = pendingRequests.front();
 		pendingRequests.pop_front();
 	}
@@ -50,11 +54,62 @@ void Worker::moveRequestsToEventQueue() {
 
 int Worker::progress() {
 	moveRequestsToEventQueue();
+
 	ucp_worker_progress(ucpWorker);
 
-	int cnt = this->eventCnt;
+	return freeAndSetCnt();
+}
+
+void Worker::addToList(Request* req) {
+	if (head) {
+		req->next = head;
+		req->size = head->size + 1;
+	}
+	else
+		req->size = 1;
+	head = req;
+}
+
+void Worker::freeRequests() {
+	while (head && head->done == 1) {
+		Request* req = head;
+		head = head->next;
+		UcpRequest::freeRequest(req);
+	}
+}
+
+int Worker::numOfRequests() const {
+	if (head)
+		return head->size;
+	return 0;
+}
+
+int Worker::wait(int events) {
+	moveRequestsToEventQueue();
+
+	while (eventCnt < events)
+		ucp_worker_progress(ucpWorker);
+
+	return freeAndSetCnt();
+}
+
+int Worker::freeAndSetCnt() {
+	if (numOfRequests() >= MAX_REQUESTS)
+		freeRequests();
+
+	int cnt = eventCnt;
 	setEventCnt(0);
 
 	return cnt;
 }
+
+void Worker::flush(int events) {
+	wait(events);
+	freeRequests();
+}
+
+
+
+
+
 

@@ -10,9 +10,6 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import sun.nio.ch.DirectBuffer;
 
 /**
  * Worker is the object representing a local communication resource such as
@@ -27,7 +24,8 @@ public class Worker {
 	public final static long DEFAULT_TAG		= -1L;
 	public final static long DEFAULT_REQ_ID 	= -1L;
 	
-	private AtomicInteger OutstandingRequests = new AtomicInteger(0);
+//	private AtomicInteger 	outstandingRequests = new AtomicInteger(0);
+	private int				outstandingRequests = 0;
 	
 	// for synchronized blocks
 	private Object mutex = new Object();
@@ -39,6 +37,7 @@ public class Worker {
 	private WorkerAddress workerAddr;
 	private Callbacks callback;
 	private Set<EndPoint> endPoints;
+	private int maxCompletions;
 	
 	/**
 	 * Creates a new Worker associated with Context ctx.
@@ -49,18 +48,25 @@ public class Worker {
 	 * @param 	cb
 	 * 			Implementation of Worker.Callbacks interface
 	 * 
-	 * @param 	maxCompletions
+	 * @param 	maxComp
 	 * 			Number of max un-handled completions
+	 * 
+	 * @throws 	IllegalArgumentException
+	 * 			In case maxComp <= 0
 	 */
-	public Worker(Context ctx, Callbacks cb, int maxCompletions /*TODO - the Java 8 version of callbacks, Consumer<Long> cb*/) {
+	public Worker(Context ctx, Callbacks cb, int maxComp /*TODO - the Java 8 version of callbacks, Consumer<Long> cb*/) {
+		if (maxComp <= 0)
+			throw new IllegalArgumentException();
+		
 		ucpContext = ctx;
 		callback = cb;
+		maxCompletions = maxComp;
 		int maxInBytes = maxCompletions << 3;
 		compQueue = new CompletionQueue(maxInBytes);
 		nativeID = Bridge.createWorker(ucpContext.getNativeID(), maxInBytes, compQueue);
 		if (nativeID < 0)
 			System.out.println("Error: native worker");
-		workerAddr = new WorkerAddress(nativeID);
+		workerAddr = new WorkerAddress(this);
 		endPoints = Collections.synchronizedSet(new HashSet<EndPoint>());
 	}
 	
@@ -118,15 +124,15 @@ public class Worker {
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
+	public int tagRecvAsync(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
 		int cnt = recvMessage(tag, tagMask, buff, buffLen, reqID);
 		setCounter(cnt);
 		return cnt;
 	}
 	
 	/**
-	 * Worker posts a receive request for an event with tag = -1. Same as calling
-	 * {@code recvMessageAsync(-1, -1, buff, buffLen, reqID)}.
+	 * Worker posts a receive request for an event with tag = -1.</br>
+	 * An invocation of this method has exactly the same effect as invoking {@code tagRecvAsync(-1, -1, buff, buffLen, reqID)}.
 	 * 
 	 * @param 	buff
 	 *			Buffer to fill with received data 
@@ -145,13 +151,13 @@ public class Worker {
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(ByteBuffer buff, int buffLen, long reqID) {
-		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, reqID);
+	public int tagRecvAsync(ByteBuffer buff, int buffLen, long reqID) {
+		return tagRecvAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, reqID);
 	}
 	
 	/**
-	 * Worker posts a receive request (with id = -1, i.e. doesn't invokes the callback)
-	 * Same as calling {@code recvMessageAsync(tag, tagMask, buff, buffLen, -1)}.
+	 * Worker posts a receive request (with id = -1, i.e. doesn't invokes the callback).</br>
+	 * An invocation of this method has exactly the same effect as invoking {@code tagRecvAsync(tag, tagMask, buff, buffLen, -1)}.
 	 * 
 	 * @param 	tag
 	 * 			Message tag to expect
@@ -173,13 +179,13 @@ public class Worker {
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(long tag, long tagMask, ByteBuffer buff, int buffLen) {
-		return recvMessageAsync(tag, tagMask, buff, buffLen, DEFAULT_REQ_ID);
+	public int tagRecvAsync(long tag, long tagMask, ByteBuffer buff, int buffLen) {
+		return tagRecvAsync(tag, tagMask, buff, buffLen, DEFAULT_REQ_ID);
 	}
 	
 	/**
-	 * Worker posts a receive request for an event with tag = -1 and a don't care reqID.
-	 * Same as calling {@code recvMessageAsync(-1, -1, buff, buffLen, -1)}.
+	 * Worker posts a receive request for an event with tag = -1 and a don't care reqID.</br>
+	 * An invocation of this method has exactly the same effect as invoking {@code tagRecvAsync(-1, -1, buff, buffLen, -1)}.
 	 * 
 	 * @param 	buff
 	 *			Buffer to fill with received data 
@@ -195,31 +201,63 @@ public class Worker {
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
 	 */
-	public int recvMessageAsync(ByteBuffer buff, int buffLen) {
-		return recvMessageAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, DEFAULT_REQ_ID);
+	public int tagRecvAsync(ByteBuffer buff, int buffLen) {
+		return tagRecvAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, DEFAULT_REQ_ID);
 	}
 	
 	/**
-	 * Check for any completed send/receive requests.
-	 * For each completion (with id != -1) the request handler is invoked.
+	 * Check for any completed send/receive requests.</br>
+	 * For each completion (with id != -1) cb.requestHandler(id) is invoked.
 	 */
 	public void progress() {
 		compQueue.completionBuff.clear();
-		int numOfEvents;
 		
 		//TODO: remove sync
 //		synchronized (mutex)
 //		{
-			numOfEvents = Bridge.progressWorker(this);
+			int numOfEvents = Bridge.progressWorker(this);
 //		}
 		
-//		OutstandingRequests.getAndAdd(-numOfEvents);
+//		outstandingRequests.getAndAdd(-numOfEvents);
+		executeCallback(numOfEvents);
+	}
+	
+	/**
+	 * Block until receiving at least numEvents completions.</br>
+	 * For each completion (with id != -1) cb.requestHandler(id) is invoked.</br>
+	 * {@code wait(0)} An invocation of this method has exactly the same effect
+	 * as invoking {@code progress()}
+	 * 
+	 * @param 	numEvents
+	 * 			Minimum number of completions to wait for.
+	 * 			If numEvents > maxCompletions then numEvents = maxCompletions.
+	 * 
+	 * @throws  IllegalArgumentException
+	 * 			If numEvents < 0 or numEvents > outstandingRequests
+	 */
+	public void wait(int numEvents) {
+		compQueue.completionBuff.clear();
+		int events = Math.min(numEvents, maxCompletions);
 		
-		for (int i = 0; i < numOfEvents; i++) {
-			long compId = compQueue.completionBuff.getLong();
-			if (compId != DEFAULT_REQ_ID)
-				callback.requestHandle(compId);
+		if (events == 0)
+			progress();
+		
+		else if (events > 0 && events <= outstandingRequests) {
+			int num = Bridge.workerWait(this, events);
+			executeCallback(num);
 		}
+		
+		else
+			throw new IllegalArgumentException();
+	}
+	
+	/**
+	 * releases all outstanding requests
+	 */
+	public void flush() {
+		while (outstandingRequests > maxCompletions)
+			wait(maxCompletions);
+		Bridge.workerFlush(this, outstandingRequests);
 	}
 	
 	/**
@@ -232,7 +270,7 @@ public class Worker {
 	}
 	
 	/**
-	 * Getter for current (this) Worker's address.
+	 * Getter for (this) Worker's address.
 	 * 
 	 * @return WorkerAddress object representing Worker's address
 	 */
@@ -241,37 +279,42 @@ public class Worker {
 	}
 	
 	/**
-	 * Frees all resources associated with this Worker.
+	 * Frees all resources associated with this Worker.</br>
 	 * Worker should not be used after calling this method.
 	 */
 	public void close() {
 		for (EndPoint ep : endPoints) {
+			removeEndPoint(ep);
 			ep.close();
 		}
+		flush();
 		Bridge.releaseWorker(this);
 	}
 	
-	void addEndPoint(EndPoint ep) {
-		endPoints.add(ep);
-	}
-	
-	void removeEndPoint(EndPoint ep) {
-		endPoints.remove(ep);
-	}
-	
-	public EndPoint createEndPoint(byte[] remoteAddr) {
-		return createEndPoint(new WorkerAddress(remoteAddr));
-	}
-	
 	/**
-	 * @param worker
-	 * @param addr
-	 * @return
+	 * create a new EndPoint object linked to (this) Worker
+	 * 
+	 * @param 	remoteAddr
+	 * 			Address of the remote worker the new EndPoint will be connected to
+	 * 
+	 * @return new EndPoint object
 	 */
 	public EndPoint createEndPoint(WorkerAddress remoteAddr) {
 		EndPoint ep = new EndPoint(this, remoteAddr);
 		addEndPoint(ep);
 		return ep;
+	}
+	
+	private void addEndPoint(EndPoint ep) {
+		endPoints.add(ep);
+	}
+	
+	private void removeEndPoint(EndPoint ep) {
+		endPoints.remove(ep);
+	}
+	
+	public EndPoint createEndPoint(byte[] remoteAddr) {
+		return createEndPoint(new WorkerAddress(remoteAddr));
 	}
 	
 	private void checkRequestReturnStatus(int rc) {
@@ -290,14 +333,25 @@ public class Worker {
 		}
 	}
 	
+	private void executeCallback(int numOfEvents) {
+		outstandingRequests -= numOfEvents;
+		
+		for (int i = 0; i < numOfEvents; i++) {
+			long compId = compQueue.completionBuff.getLong();
+			if (compId != DEFAULT_REQ_ID)
+				callback.requestHandle(compId);
+		}
+	}
+	
 	int sendMessage(EndPoint ep, long tag, ByteBuffer msg, int msgLen, long reqID) {
 		if (msgLen > msg.remaining())
 			throw new BufferUnderflowException();
 		
-		long addr = ((DirectBuffer)msg).address();
-		int sent = Bridge.sendMsgAsync(ep, tag, addr, msgLen, reqID);
+		//TODO: throws exception in C
+		int sent = Bridge.sendMsgAsync(ep, tag, msg, msgLen, reqID);
 
-//		OutstandingRequests.incrementAndGet();
+//		outstandingRequests.incrementAndGet();
+		outstandingRequests++;
 		
 		//TODO: test w/o
 //		synchronized (mutex)
@@ -321,11 +375,13 @@ public class Worker {
 			throw new BufferOverflowException();
 		
 		int rcvd = 0;
-//		OutstandingRequests.incrementAndGet();
+//		outstandingRequests.incrementAndGet();
+		outstandingRequests++;
 		
 //		synchronized (mutex)
 //		{
 //			if (msg.isDirect()) {
+//		System.out.println("Request id = " + reqID); //TODO
 				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, buff, buffLen, reqID);
 //			}
 //			else {
@@ -359,16 +415,16 @@ public class Worker {
 	}
 	
 	/**
-	 * The Callbacks interface must be implemented in-order to create a Worker.
+	 * The Callbacks interface must be implemented in-order to create a Worker.</br>
 	 * Worker will invoke the implemented method whenever a request is completed.
 	 */
 	@FunctionalInterface
 	public static interface Callbacks {
 		
 		/**
-		 * Triggered whenever a new event is completed.
+		 * Invoked whenever an event is completed.
 		 * 
-		 * @param 	requestId 
+		 * @param 	requestId
 		 * 			Id of completed request
 		 */
 		public void requestHandle(long requestId);

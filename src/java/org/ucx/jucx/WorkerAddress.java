@@ -27,9 +27,15 @@ public final class WorkerAddress implements Serializable {
 		return workerAddr.clone();
 	}
 	
-	WorkerAddress(long workerNativeID) {
+	/**
+	 * Creates a new WorkerAddress object - holding the worker's UCP address
+	 * 
+	 * @param 	worker
+	 * 			Worker that (this) WorkerAddress represents his address
+	 */
+	WorkerAddress(Worker worker) {
 		long[] retValue = new long[1];
-		workerAddr = Bridge.getWorkerAddress(workerNativeID, retValue);
+		workerAddr = Bridge.getWorkerAddress(worker.getNativeID(), retValue);
 		nativeID = retValue[0];
 	}
 	
