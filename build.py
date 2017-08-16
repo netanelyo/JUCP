@@ -167,10 +167,12 @@ if examples:
 	src_path = '/org/ucx/jucx/examples'
 	#os.makedirs(bin_dir + src_path)
 	example_java_dir = dir+'/examples'
-	example_java_files = example_java_dir + src_path + '/*.java'
+	example_java_files = dir + '/example_files.txt'
+	os.system(find_cmd.format(example_java_dir, example_java_files))
 	
-	cmd = 'javac -cp ' + dependency + ' -d ' + bin_dir + ' ' + example_java_files
+	cmd = 'javac -cp ' + dependency + ' -d ' + bin_dir + ' @' + example_java_files
 	os.system(cmd)
+	os.system('rm -f ' + example_java_files)
 
 if tests:
 	os.chdir(dir)

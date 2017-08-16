@@ -27,8 +27,8 @@ public class Worker {
 //	private AtomicInteger 	outstandingRequests = new AtomicInteger(0);
 	private int				outstandingRequests = 0;
 	
-	// for synchronized blocks
-	private Object mutex = new Object();
+	// TODO: for synchronized blocks
+//	private Object mutex = new Object();
 	
 
 	private Context ucpContext;
@@ -61,40 +61,11 @@ public class Worker {
 		ucpContext = ctx;
 		callback = cb;
 		maxCompletions = maxComp;
-		int maxInBytes = maxCompletions << 3;
-		compQueue = new CompletionQueue(maxInBytes);
-		nativeID = Bridge.createWorker(ucpContext.getNativeID(), maxInBytes, compQueue);
-		if (nativeID < 0)
-			System.out.println("Error: native worker");
+		compQueue = new CompletionQueue();
+		nativeID = Bridge.createWorker(ucpContext.getNativeID(), maxCompletions, compQueue);
 		workerAddr = new WorkerAddress(this);
 		endPoints = Collections.synchronizedSet(new HashSet<EndPoint>());
 	}
-	
-	
-//	public void progress(/* int minEvents, int maxEvents, int timeOutMSec*/) {
-//		compQueue.completionBuff.rewind();
-//		int cnt = compQueue.completionCnt;
-//		int maxEv = maxEvents;
-//		int maxPossible = Math.min(OUTSTANDING_REQUESTS, compQueue.completionCap);
-//		
-//		// Max processed requests bounded by num of outstanding requests and capacity of buffer
-//		if (maxEvents > maxPossible) {
-//			maxEv = maxPossible;
-//		}
-//		
-//		while (cnt < maxEv) {
-//				cnt += Bridge.progressWorker(this, maxEv);
-//		}
-//		
-//		for (int i = 0; i < maxEv; i++) {
-//			callback.requestHandle(compQueue.completionBuff.getLong());
-//			cnt--;
-//		}
-//		compQueue.completionBuff.compact(); // Compacting buffer (removing all read events)
-//
-//		OUTSTANDING_REQUESTS -= maxEv;
-//		compQueue.completionCnt = cnt;
-//	}
 	
 	/**
 	 * Worker posts a receive request for an event with matching tag
@@ -126,7 +97,6 @@ public class Worker {
 	 */
 	public int tagRecvAsync(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
 		int cnt = recvMessage(tag, tagMask, buff, buffLen, reqID);
-		setCounter(cnt);
 		return cnt;
 	}
 	
@@ -212,13 +182,8 @@ public class Worker {
 	public void progress() {
 		compQueue.completionBuff.clear();
 		
-		//TODO: remove sync
-//		synchronized (mutex)
-//		{
-			int numOfEvents = Bridge.progressWorker(this);
-//		}
+		int numOfEvents = Bridge.progressWorker(this);
 		
-//		outstandingRequests.getAndAdd(-numOfEvents);
 		executeCallback(numOfEvents);
 	}
 	
@@ -313,10 +278,45 @@ public class Worker {
 		endPoints.remove(ep);
 	}
 	
+	private void executeCallback(int numOfEvents) {
+		outstandingRequests -= numOfEvents;
+		
+		for (int i = 0; i < numOfEvents; i++) {
+			long compId = compQueue.completionBuff.getLong();
+			if (compId != DEFAULT_REQ_ID)
+				callback.requestHandle(compId);
+		}
+	}
+	
+	int sendMessage(EndPoint ep, long tag, ByteBuffer msg, int msgLen, long reqID) {
+		if (msgLen > msg.remaining())
+			throw new BufferUnderflowException();
+		
+		int sent = Bridge.sendMsgAsync(ep, tag, msg, msgLen, reqID);
+
+		outstandingRequests++;
+		
+		return sent;
+	}
+	
+	private int recvMessage(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
+		if (buffLen > buff.remaining())
+			throw new BufferOverflowException();
+		
+		int rcvd = Bridge.recvMsgAsync(this, tag, tagMask, buff, buffLen, reqID);
+		
+		outstandingRequests++;
+		
+		return rcvd;
+	}
+	
+	//TODO: currently unused
 	public EndPoint createEndPoint(byte[] remoteAddr) {
 		return createEndPoint(new WorkerAddress(remoteAddr));
 	}
 	
+	//TODO: currently unused
+	@SuppressWarnings("unused")
 	private void checkRequestReturnStatus(int rc) {
 		switch (rc)
 		{
@@ -333,85 +333,8 @@ public class Worker {
 		}
 	}
 	
-	private void executeCallback(int numOfEvents) {
-		outstandingRequests -= numOfEvents;
-		
-		for (int i = 0; i < numOfEvents; i++) {
-			long compId = compQueue.completionBuff.getLong();
-			if (compId != DEFAULT_REQ_ID)
-				callback.requestHandle(compId);
-		}
-	}
-	
-	int sendMessage(EndPoint ep, long tag, ByteBuffer msg, int msgLen, long reqID) {
-		if (msgLen > msg.remaining())
-			throw new BufferUnderflowException();
-		
-		//TODO: throws exception in C
-		int sent = Bridge.sendMsgAsync(ep, tag, msg, msgLen, reqID);
-
-//		outstandingRequests.incrementAndGet();
-		outstandingRequests++;
-		
-		//TODO: test w/o
-//		synchronized (mutex)
-//		{
-			//TODO: no if
-//			if (msg.isDirect()) {
-//				sent = Bridge.sendMsgAsync(ep, tag, ((DirectBuffer)msg).address(), msgLen, reqID);
-//			}
-//			else {
-//				sent = Bridge.sendMsgAsync(ep, tag, msg.array(), msgLen, reqID);
-//			}
-//		}
-		
-//		checkRequestReturnStatus(sent);
-		
-		return sent;
-	}
-	
-	private int recvMessage(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
-		if (buffLen > buff.remaining())
-			throw new BufferOverflowException();
-		
-		int rcvd = 0;
-//		outstandingRequests.incrementAndGet();
-		outstandingRequests++;
-		
-//		synchronized (mutex)
-//		{
-//			if (msg.isDirect()) {
-//		System.out.println("Request id = " + reqID); //TODO
-				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, buff, buffLen, reqID);
-//			}
-//			else {
-//				rcvd = Bridge.recvMsgAsync(this, tag, tagMask, msg.array(), msgLen, reqID);
-//			}
-//		}
-		
-//		checkRequestReturnStatus(rcvd);
-		
-		return rcvd;
-	}
-	
-	void setCounter(int cnt) {
-		compQueue.setCompletionCnt(cnt);
-	}
-	
 	class CompletionQueue {
-		private int	completionCnt;
-		private int	completionCap;
-		ByteBuffer 	completionBuff;
-		
-		private CompletionQueue(int capacity) {
-			completionCnt 	= 0;
-			completionCap 	= capacity;
-			completionBuff 	= null;
-		}
-		
-		private void setCompletionCnt(int completionCnt) {
-			this.completionCnt = completionCnt;
-		}
+		ByteBuffer completionBuff = null;
 	}
 	
 	/**

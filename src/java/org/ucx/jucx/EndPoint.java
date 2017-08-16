@@ -53,7 +53,6 @@ public class EndPoint {
 	 */
 	public int tagSendAsync(long tag, ByteBuffer msg, int msgLen, long reqID) {
 		int cnt = localWorker.sendMessage(this, tag, msg, msgLen, reqID);
-		localWorker.setCounter(cnt);
 		return cnt;
 	}
 	
@@ -61,14 +60,6 @@ public class EndPoint {
 	public int tagSendAsync(long tag, ByteBuffer msg, int msgLen) {
 		return tagSendAsync(tag, msg, msgLen, Worker.DEFAULT_REQ_ID);
 	}
-	
-//	public int sendMessageSync(TagMsg msg, long reqID) {
-//		return commonSend(msg, true, reqID);
-//	}
-	
-//	public int sendMessageSync(TagMsg msg) {
-//		return commonSend(msg, true, 0);
-//	}
 	
 	public long getNativeID() {
 		return nativeID;

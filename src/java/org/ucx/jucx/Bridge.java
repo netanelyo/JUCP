@@ -10,33 +10,15 @@ import org.ucx.jucx.Worker.CompletionQueue;
 
 import sun.nio.ch.DirectBuffer;
 
-//import org.accelio.jxio.EventQueueHandler;
-//import org.apache.commons.logging.LogFactory;
-
 public class Bridge {
-
-	// private static final Log LogFromNative =
-	// LogFactory.getLog("LogFromNative");
-	// private static final Log LOGBridge = LogFactory.getLog(Bridge.class
-	// .getCanonicalName());
-	// private static final String version_jxio;
-	// private static final String version_xio;
-
-	// private static ConcurrentMap<Long, EventQueueHandler> mapIdEQHObject =
-	// new ConcurrentHashMap<Long, EventQueueHandler>();
-
 	static {
-		LoadLibrary.loadLibrary("libucp.so"); // UCP library
-		LoadLibrary.loadLibrary("libjucp.so"); // JUCP native library
-		// version_jxio = getVersionNative();
-		// version_xio = getVersionAccelIONative();
-		// setNativeLogLevel(getLogLevel());
+		LoadLibrary.loadLibrary("libucp.so"); 	// UCP library
+		LoadLibrary.loadLibrary("libjucp.so"); 	// JUCP native library
 	}
 
 	private static native long createCtxNative(long features, long fieldMask);
 
 	static long createCtx(UCPParams params) {
-		/* Initializing ucp_context_h */
 		return createCtxNative(params.getFeatures(), params.getFieldMask());
 	}
 
@@ -119,13 +101,6 @@ public class Bridge {
 	static void releaseEndPoint(EndPoint ucpEndPoint) {
 		releaseEndPointNative(ucpEndPoint.getNativeID());
 	}
-
-	// private static native int progressWorkerNative(long workerID, int
-	// maxEvents);
-	//
-	// static int progressWorker(Worker ucpWorker, int maxEvents) {
-	// return progressWorkerNative(ucpWorker.getNativeID(), maxEvents);
-	// }
 
 	private static native int progressWorkerNative(long workerID);
 

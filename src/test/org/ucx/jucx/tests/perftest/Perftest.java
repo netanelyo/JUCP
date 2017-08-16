@@ -21,10 +21,9 @@ public class Perftest {
 		StringBuffer str = new StringBuffer();
 		String sep = System.lineSeparator();
 		str.append(sep + "Options:" + sep);
-		str.append("\t-p <port>          TCP port to listen on (default: 12345)" + sep);
+		str.append("\t-p <port>          TCP port (default: 12345)" + sep);
 		str.append("\t-n <iterations>    number of iterations (default: 1000000)" + sep);
 		str.append("\t-s <size>          msg size in bytes (default: 64)" + sep);
-//		str.append("\t-t <tag>           request tag (default: 29592)" + sep);
 		str.append("\t-w <iterations>    number if warmup iterations (default: 10000; max.: iterations/10)" + sep);
 		str.append("\t-v                 enable progress printing to System.out (default: no print)" + sep);
 		str.append("\t-b                 bandwidth test (default: ping-pong)" + sep);

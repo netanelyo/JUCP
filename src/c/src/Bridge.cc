@@ -148,14 +148,14 @@ JNIEXPORT jlong JNICALL Java_org_ucx_jucx_Bridge_createWorkerNative(JNIEnv *env,
 	Worker* ucpWorker;
 	ucs_status_t status;
 	jobject jbyteBuff;
-	uint32_t cap = (uint32_t) (maxComp >> 3);
+	uint32_t cap = (uint32_t) maxComp;
 
 	workerParams.field_mask = UCP_WORKER_PARAM_FIELD_THREAD_MODE;
 	workerParams.thread_mode = UCS_THREAD_MODE_SINGLE;
 
 	ucpWorker = new Worker(ucpContext, workerParams, cap);
 
-	jbyteBuff = env->NewDirectByteBuffer(ucpWorker->getBuffer(), cap);
+	jbyteBuff = env->NewDirectByteBuffer(ucpWorker->getBuffer(), (cap << 3));
 	if (!jbyteBuff) {
 		std::cout << "Error: Failed to allocate direct ByteBuffer" << std::endl;
 		return -1;
