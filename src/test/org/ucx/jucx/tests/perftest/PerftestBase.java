@@ -31,7 +31,7 @@ public abstract class PerftestBase {
 		
 		barrier(tcp);
 		warmup();
-		barrier(tcp);
+//		barrier(tcp);
 		
 		execute(params.maxIter);
 		barrier(tcp);

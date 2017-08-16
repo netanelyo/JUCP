@@ -139,7 +139,6 @@ public class PerftestDataStructures {
 		}
 		
 		public void close() {
-			worker.flush();
 			worker.close();
 			ctx.close();
 		}

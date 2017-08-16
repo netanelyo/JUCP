@@ -26,8 +26,8 @@ public class BandwidthClient extends BandwidthTest implements PerftestClient {
 			
 			ep.tagSendAsync(TAG, buffers.get(), size, i);
 
-			while (!buffers.ready())
-				worker.progress();
+			if (!buffers.ready())
+				worker.wait(1);
 			
 			if (ctx.print) {
 				System.out.println("Iteration #" + i + " in warmup");
@@ -49,16 +49,14 @@ public class BandwidthClient extends BandwidthTest implements PerftestClient {
 		
 		int i = 0;
 		while (!done()) {
-			measure.prevTime = Time.nanoTime();
-			
 			ep.tagSendAsync(TAG, buffers.get(), size, i);
 
-			while (!buffers.ready())
-				worker.progress();
+			if (!buffers.ready())
+				worker.wait(1);
 			
 			measure.currTime = Time.nanoTime();
 			
-			measure.setCurrentMeasurement(i++, 1, 1, size);
+			measure.setMeasurement(i++, 1);
 			
 			if (ctx.print) {
 				System.out.println("Iteration #" + i + " in main loop");

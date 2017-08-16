@@ -7,7 +7,7 @@
 #include <byteswap.h>
 #include <iostream>
 
-#define MAX_REQUESTS 8
+#define MAX_REQUESTS 4
 
 Worker::Worker(ucp_context_h ctx, ucp_worker_params_t params, uint32_t cap) :
 		workerAddress(nullptr), addressLength(0), eventCnt(0), queueSize(cap),

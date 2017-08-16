@@ -5,6 +5,7 @@ import org.ucx.jucx.Worker;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfMeasurements;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfParams;
 import org.ucx.jucx.utils.Time;
+import org.ucx.jucx.utils.Utils;
 
 public class LatencyClient extends LatencyTest implements PerftestClient {
 
@@ -24,9 +25,6 @@ public class LatencyClient extends LatencyTest implements PerftestClient {
 			worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, recvBuff, size, i);
 			
 			worker.wait(2);
-//			int bound = 2*(i+1);
-//			while (cb.cnt < bound)
-//				worker.progress();
 			
 			if (ctx.print)
 				System.out.println("Iteration #" + i + " in warmup loop");
@@ -47,18 +45,12 @@ public class LatencyClient extends LatencyTest implements PerftestClient {
 		
 		int i = 0;
 		while (!done()) {
-//			measure.prevTime = Time.nanoTime();
 			
 			ep.tagSendAsync(TAG, sendBuff, size, i);
-			
-//			worker.wait(1);
 
 			worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, recvBuff, size, i);
 
 			worker.wait(2);
-//			int bound = 2*(i+1);
-//			while (cb.cnt < bound)
-//				worker.progress();
 			
 			measure.currTime = Time.nanoTime();
 			
@@ -67,10 +59,10 @@ public class LatencyClient extends LatencyTest implements PerftestClient {
 			if (recvBuff.getInt(0) != recvBuff.getInt(size - 4) || recvBuff.getInt(0) != i - 1)
 				System.out.println("Error: " + i);
 			
-//			if (ctx.print) {
-//				System.out.println("Iteration #" + i + " in main loop");
-//				System.out.println("Received message: " + Utils.getByteBufferAsString(recvBuff));
-//			}
+			if (ctx.print) {
+				System.out.println("Iteration #" + i + " in main loop");
+				System.out.println("Received message: " + Utils.getByteBufferAsString(recvBuff));
+			}
 		}
 		
 		measure.endTime = measure.currTime;
