@@ -13,7 +13,7 @@ public class LatencyServer extends LatencyTest {
 		PerfParams params = ctx.params;
 		int size = params.size;
 		
-		worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, recvBuff, size, 0);
+		worker.tagRecvAsync(recvBuff, size, TAG, Worker.DEFAULT_TAG_MASK, 0);
 		
 		worker.wait(1);
 		
@@ -21,9 +21,9 @@ public class LatencyServer extends LatencyTest {
 			
 			sendBuff.putInt(0, i);
 			sendBuff.putInt(size - 4, i);
-			ep.tagSendAsync(TAG, sendBuff, size, i);
+			ep.tagSendAsync(sendBuff, size, TAG, i);
 			
-			worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, recvBuff, size, i + 1);
+			worker.tagRecvAsync(recvBuff, size, TAG, Worker.DEFAULT_TAG_MASK, i + 1);
 			
 			worker.wait(2);
 //			int bound = 2*i + 1;
@@ -33,7 +33,7 @@ public class LatencyServer extends LatencyTest {
 		
 		sendBuff.putInt(0, iters - 1);
 		sendBuff.putInt(size - 4, iters - 1);
-		ep.tagSendAsync(TAG, sendBuff, size, iters - 1);
+		ep.tagSendAsync(sendBuff, size, TAG, iters - 1);
 		
 		worker.wait(1);
 		

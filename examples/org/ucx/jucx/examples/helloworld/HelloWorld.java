@@ -8,7 +8,7 @@ import org.ucx.jucx.UCPParams;
 import org.ucx.jucx.UCPParams.Features;
 import org.ucx.jucx.UCPParams.FieldMask;
 import org.ucx.jucx.Worker;
-import org.ucx.jucx.Worker.Callbacks;
+import org.ucx.jucx.Worker.Callback;
 import org.ucx.jucx.utils.Options;
 
 public abstract class HelloWorld {
@@ -29,7 +29,7 @@ public abstract class HelloWorld {
 		
 		UCPParams params = new UCPParams(feats, mask);
 		ctx = Context.getInstance(params);
-		worker = new Worker(ctx, new Callback(), 100);
+		worker = new Worker(ctx, new HelloWorldCallback(), 100);
 		
 		buff = ByteBuffer.allocateDirect(MESSAGE.length());
 	}
@@ -73,7 +73,7 @@ public abstract class HelloWorld {
 		System.out.println("[SUCCESS] Exiting...");
 	}
 	
-	class Callback implements Callbacks {
+	class HelloWorldCallback implements Callback {
 		@Override
 		public void requestHandle(long requestId) {}
 	}

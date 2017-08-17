@@ -4,6 +4,7 @@ import org.ucx.jucx.Context;
 import org.ucx.jucx.UCPParams;
 import org.ucx.jucx.UCPParams.Features;
 import org.ucx.jucx.UCPParams.FieldMask;
+import org.ucx.jucx.Worker.Callback;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfParams;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.TcpConnection;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.UcpObjects;
@@ -31,7 +32,7 @@ public abstract class PerftestBase {
 		
 		barrier(tcp);
 		warmup();
-//		barrier(tcp);
+		barrier(tcp);
 		
 		execute(params.maxIter);
 		barrier(tcp);
@@ -59,6 +60,11 @@ public abstract class PerftestBase {
 		ucpObj.setWorker(ctx.cb, params.events);
 		
 		ctx.ucpObj = ucpObj;
+	}
+	
+	static class PerftestCallback implements Callback {
+		@Override
+		public void requestHandle(long requestId) { }
 	}
 	
 }

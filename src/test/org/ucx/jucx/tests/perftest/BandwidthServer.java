@@ -33,15 +33,10 @@ public class BandwidthServer extends BandwidthTest {
 		int size = params.size;
 		
 		for (int i = 0; i < iters; i++) {
-			worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, buffers.get(), size, i);
+			worker.tagRecvAsync(buffer, size, TAG, Worker.DEFAULT_TAG_MASK, i);
 			
-			if (!buffers.ready())
-				worker.wait(1);
+			worker.wait(1);
 		}
-		
-		if (iters == params.maxIter)
-			while (!buffers.initialized())
-				worker.progress();
 	}
 }
 

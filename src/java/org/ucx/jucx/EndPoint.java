@@ -31,14 +31,14 @@ public class EndPoint {
 	 * EndPoint posts a send request for a message with tag tag. </br>
 	 * Message is of length msgLen.
 	 * 
-	 * @param 	tag
-	 * 			Sent message's tag
-	 * 
 	 * @param 	msg
 	 * 			Outgoing message
 	 * 
 	 * @param 	msgLen
 	 * 			Message length
+	 * 
+	 * @param 	tag
+	 * 			Sent message's tag
 	 * 
 	 * @param 	reqID
 	 * 			Send request ID
@@ -51,14 +51,18 @@ public class EndPoint {
 	 * @throws 	BufferUnderflowException
 	 * 			If there isn't enough data to send (msgLen > msg.remaining())
 	 */
-	public int tagSendAsync(long tag, ByteBuffer msg, int msgLen, long reqID) {
-		int cnt = localWorker.sendMessage(this, tag, msg, msgLen, reqID);
+	public int tagSendAsync(ByteBuffer msg, int msgLen, long tag, long reqID) {
+		int cnt = localWorker.sendMessage(this, msg, msgLen, tag, reqID);
 		return cnt;
 	}
 	
 	// dontcare request id
-	public int tagSendAsync(long tag, ByteBuffer msg, int msgLen) {
-		return tagSendAsync(tag, msg, msgLen, Worker.DEFAULT_REQ_ID);
+	public int tagSendAsync(ByteBuffer msg, int msgLen, long tag) {
+		return tagSendAsync(msg, msgLen, tag, Worker.DEFAULT_REQ_ID);
+	}
+	
+	public int tagSendAsync(ByteBuffer msg, int msgLen) {
+		return tagSendAsync(msg, msgLen, Worker.DEFAULT_TAG, Worker.DEFAULT_REQ_ID);
 	}
 	
 	public long getNativeID() {

@@ -20,9 +20,9 @@ public class LatencyClient extends LatencyTest implements PerftestClient {
 		
 		for (int i = 0; i < iters; i++) {
 			
-			ep.tagSendAsync(TAG, sendBuff, size, i);
+			ep.tagSendAsync(sendBuff, size, TAG, i);
 			
-			worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, recvBuff, size, i);
+			worker.tagRecvAsync(recvBuff, size, TAG, Worker.DEFAULT_TAG_MASK, i);
 			
 			worker.wait(2);
 			
@@ -46,10 +46,10 @@ public class LatencyClient extends LatencyTest implements PerftestClient {
 		int i = 0;
 		while (!done()) {
 			
-			ep.tagSendAsync(TAG, sendBuff, size, i);
-
-			worker.tagRecvAsync(TAG, Worker.DEFAULT_TAG_MASK, recvBuff, size, i);
-
+			ep.tagSendAsync(sendBuff, size, TAG, i);
+			
+			worker.tagRecvAsync(recvBuff, size, TAG, Worker.DEFAULT_TAG_MASK, i);
+			
 			worker.wait(2);
 			
 			measure.currTime = Time.nanoTime();

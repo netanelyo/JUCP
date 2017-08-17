@@ -15,9 +15,9 @@ public class Context {
 	private UCPParams params;
 	private long nativeID;
 	
-	private Context(UCPParams params, long natID) {
+	private Context(UCPParams params, long nativeID) {
 		this.params = params;
-		nativeID = natID;
+		this.nativeID = nativeID;
 	}
 	
 	/**
@@ -30,11 +30,12 @@ public class Context {
 	 */
 	public static Context getInstance(UCPParams params) {
 		if (CTX == null) {
-			long nat = Bridge.createCtx(params);
-			if (nat != 0)
-				CTX = new Context(params, nat);
+			long nativeID = Bridge.createCtx(params);
+			if (nativeID != 0)
+				CTX = new Context(params, nativeID);
 		}
 		
+		//TODO: verify context params
 		return CTX;
 	}
 	
@@ -42,6 +43,7 @@ public class Context {
 	 * Releases (native) Context
 	 */
 	public void close() {
+		CTX = null;
 		Bridge.closeCtx(this);
 	}
 

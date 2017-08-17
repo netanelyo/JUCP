@@ -28,7 +28,6 @@ public class Perftest {
 		str.append("\t-v                 enable progress printing to System.out (default: no print)" + sep);
 		str.append("\t-b                 bandwidth test (default: ping-pong)" + sep);
 		str.append("\t-e <events>        size of shared event queue (default: 200)" + sep);
-		str.append("\t-O <outstanding>   number of outstanding requests for bw test (default: 1); also implies -b" + sep);
 		str.append("\t-f <filename>      write results to file <filename>" + sep);
 		str.append("\t-T <time>          run a total of <time> seconds (default: 0.0 => unlimited)" + sep);
 		str.append("\t-r <time>          report results every <time> seconds (default: 1.0)" + sep);
@@ -37,7 +36,7 @@ public class Perftest {
 	}
 	
 	protected void parseArgs(String[] args) {
-		Options options = new Options("w:f:p:n:s:vbe:O:hT:r:", args);
+		Options options = new Options("w:f:p:n:s:vbe:hT:r:", args);
 		char opt;
 		PerfParams params = ctx.params;
 		while ((opt = options.getOpt()) != Options.EOF) {
@@ -76,8 +75,6 @@ public class Perftest {
 				params.warmupIter		= Integer.parseInt(val);
 				break;
 			
-			case 'O':
-				params.maxOutstanding	= Integer.parseInt(val);
 			case 'b':
 				params.testType			= PerfTestType.UCP_TEST_STREAM;
 				break;

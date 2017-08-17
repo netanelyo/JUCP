@@ -35,9 +35,9 @@ public class Worker {
 	private long nativeID;
 	private CompletionQueue compQueue;
 	private WorkerAddress workerAddr;
-	private Callbacks callback;
+	private Callback callback;
 	private Set<EndPoint> endPoints;
-	private int maxCompletions;
+	private int maxEvents;
 	
 	/**
 	 * Creates a new Worker associated with Context ctx.
@@ -48,21 +48,21 @@ public class Worker {
 	 * @param 	cb
 	 * 			Implementation of Worker.Callbacks interface
 	 * 
-	 * @param 	maxComp
-	 * 			Number of max un-handled completions
+	 * @param 	maxEvents
+	 * 			Number of max queued completed events
 	 * 
 	 * @throws 	IllegalArgumentException
 	 * 			In case maxComp <= 0
 	 */
-	public Worker(Context ctx, Callbacks cb, int maxComp /*TODO - the Java 8 version of callbacks, Consumer<Long> cb*/) {
-		if (maxComp <= 0)
+	public Worker(Context ctx, Callback cb, int maxEvents /*TODO - the Java 8 version of callbacks, Consumer<Long> cb*/) {
+		if (maxEvents <= 0)
 			throw new IllegalArgumentException();
 		
 		ucpContext = ctx;
 		callback = cb;
-		maxCompletions = maxComp;
+		this.maxEvents = maxEvents;
 		compQueue = new CompletionQueue();
-		nativeID = Bridge.createWorker(ucpContext.getNativeID(), maxCompletions, compQueue);
+		nativeID = Bridge.createWorker(ucpContext.getNativeID(), maxEvents, compQueue);
 		workerAddr = new WorkerAddress(this);
 		endPoints = Collections.synchronizedSet(new HashSet<EndPoint>());
 	}
@@ -72,17 +72,17 @@ public class Worker {
 	 * (filtered by tagMask) at length buffLen. In case of success - buff will
 	 * be set accordingly.
 	 * 
-	 * @param 	tag
-	 * 			Message tag to expect
-	 * 
-	 * @param 	tagMask
-	 * 			Bit mask for the comparison of received and expected tag
-	 * 
 	 * @param 	buff
 	 *			Buffer to fill with received data 
 	 * 
 	 * @param 	buffLen
 	 * 			Number of bytes to receive
+	 * 
+	 * @param 	tag
+	 * 			Message tag to expect
+	 * 
+	 * @param 	tagMask
+	 * 			Bit mask for the comparison of received and expected tag
 	 * 
 	 * @param 	reqID
 	 * 			Receive request ID
@@ -94,15 +94,19 @@ public class Worker {
 	 * 
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
+	 * 
+	 * @throws 	IllegalStateException
+	 * 			If events queue is in full capacity
 	 */
-	public int tagRecvAsync(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
-		int cnt = recvMessage(tag, tagMask, buff, buffLen, reqID);
+	public int tagRecvAsync(ByteBuffer buff, int buffLen, long tag, long tagMask, long reqID) {
+		int cnt = recvMessage(buff, buffLen, tag, tagMask, reqID);
 		return cnt;
 	}
 	
 	/**
-	 * Worker posts a receive request for an event with tag = -1.</br>
-	 * An invocation of this method has exactly the same effect as invoking {@code tagRecvAsync(-1, -1, buff, buffLen, reqID)}.
+	 * Worker posts a receive request for an event with tag = DEFAULT_TAG.</br>
+	 * An invocation of this method has exactly the same effect as invoking
+	 * {@code tagRecvAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, reqID)}.
 	 * 
 	 * @param 	buff
 	 *			Buffer to fill with received data 
@@ -120,14 +124,26 @@ public class Worker {
 	 * 
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
+	 * 
+	 * @throws 	IllegalStateException
+	 * 			If events queue is in full capacity
 	 */
+
 	public int tagRecvAsync(ByteBuffer buff, int buffLen, long reqID) {
-		return tagRecvAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, reqID);
+		return tagRecvAsync(buff, buffLen, DEFAULT_TAG, DEFAULT_TAG_MASK, reqID);
 	}
 	
 	/**
-	 * Worker posts a receive request (with id = -1, i.e. doesn't invokes the callback).</br>
-	 * An invocation of this method has exactly the same effect as invoking {@code tagRecvAsync(tag, tagMask, buff, buffLen, -1)}.
+	 * Worker posts a receive request (with id = DEFAULT_REQ_ID,
+	 * i.e. doesn't invoke the callback).</br>
+	 * An invocation of this method has exactly the same effect as invoking
+	 * {@code tagRecvAsync(tag, tagMask, buff, buffLen, DEFAULT_REQ_ID)}.
+	 * 
+	 * @param 	buff
+	 *			Buffer to fill with received data 
+	 * 
+	 * @param 	buffLen
+	 * 			Number of bytes to receive
 	 * 
 	 * @param 	tag
 	 * 			Message tag to expect
@@ -135,12 +151,6 @@ public class Worker {
 	 * @param 	tagMask
 	 * 			Bit mask for the comparison of received and expected tag
 	 * 
-	 * @param 	buff
-	 *			Buffer to fill with received data 
-	 * 
-	 * @param 	buffLen
-	 * 			Number of bytes to receive
-	 * 
 	 * @return
 	 * 		   -1 - in case of an error
 	 * 			0 - in case the request is not completed
@@ -148,14 +158,19 @@ public class Worker {
 	 * 
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
+	 * 
+	 * @throws 	IllegalStateException
+	 * 			If events queue is in full capacity
 	 */
-	public int tagRecvAsync(long tag, long tagMask, ByteBuffer buff, int buffLen) {
-		return tagRecvAsync(tag, tagMask, buff, buffLen, DEFAULT_REQ_ID);
+	public int tagRecvAsync(ByteBuffer buff, int buffLen, long tag, long tagMask) {
+		return tagRecvAsync(buff, buffLen, tag, tagMask, DEFAULT_REQ_ID);
 	}
 	
 	/**
-	 * Worker posts a receive request for an event with tag = -1 and a don't care reqID.</br>
-	 * An invocation of this method has exactly the same effect as invoking {@code tagRecvAsync(-1, -1, buff, buffLen, -1)}.
+	 * Worker posts a receive request for an event with
+	 * tag = DEFAULT_TAG and a don't care reqID.</br>
+	 * An invocation of this method has exactly the same effect as invoking
+	 * {@code tagRecvAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, DEFAULT_REQ_ID)}.
 	 * 
 	 * @param 	buff
 	 *			Buffer to fill with received data 
@@ -170,44 +185,40 @@ public class Worker {
 	 * 
 	 * @throws 	BufferOverflowException
 	 * 			If there is insufficient space in this buffer (buffLen > buff.remaining())
+	 * 
+	 * @throws 	IllegalStateException
+	 * 			If events queue is in full capacity
 	 */
 	public int tagRecvAsync(ByteBuffer buff, int buffLen) {
-		return tagRecvAsync(DEFAULT_TAG, DEFAULT_TAG_MASK, buff, buffLen, DEFAULT_REQ_ID);
+		return tagRecvAsync(buff, buffLen, DEFAULT_TAG, DEFAULT_TAG_MASK, DEFAULT_REQ_ID);
 	}
 	
 	/**
 	 * Check for any completed send/receive requests.</br>
-	 * For each completion (with id != -1) cb.requestHandler(id) is invoked.
+	 * For each completion (with id != DEFAULT_REQ_ID) cb.requestHandler(id) is invoked.
 	 */
 	public void progress() {
-		compQueue.completionBuff.clear();
-		
-		int numOfEvents = Bridge.progressWorker(this);
-		
-		executeCallback(numOfEvents);
+		wait(0);
 	}
 	
 	/**
 	 * Block until receiving at least numEvents completions.</br>
-	 * For each completion (with id != -1) cb.requestHandler(id) is invoked.</br>
+	 * For each completion (with id != DEFAULT_REQ_ID) cb.requestHandler(id) is invoked.</br>
 	 * {@code wait(0)} An invocation of this method has exactly the same effect
 	 * as invoking {@code progress()}
 	 * 
 	 * @param 	numEvents
-	 * 			Minimum number of completions to wait for.
-	 * 			If numEvents > maxCompletions then numEvents = maxCompletions.
+	 * 			Minimum number of completions to wait for.</br>
+	 * 			If numEvents > outstandingRequests then numEvents = outstandingRequests.
 	 * 
 	 * @throws  IllegalArgumentException
-	 * 			If numEvents < 0 or numEvents > outstandingRequests
+	 * 			If numEvents < 0
 	 */
 	public void wait(int numEvents) {
 		compQueue.completionBuff.clear();
-		int events = Math.min(numEvents, maxCompletions);
+		int events = Math.min(numEvents, outstandingRequests);
 		
-		if (events == 0)
-			progress();
-		
-		else if (events > 0 && events <= outstandingRequests) {
+		if (events >= 0) {
 			int num = Bridge.workerWait(this, events);
 			executeCallback(num);
 		}
@@ -217,11 +228,20 @@ public class Worker {
 	}
 	
 	/**
+	 * Block until all outstanding requests are completed.</br>
+	 * For each completion (with id != DEFAULT_REQ_ID) cb.requestHandler(id) is invoked.</br>
+	 * 
+	 * @throws  IllegalArgumentException
+	 * 			If numEvents < 0 or numEvents > outstandingRequests
+	 */
+	public void waitAll() {
+		wait(outstandingRequests);
+	}
+	
+	/**
 	 * releases all outstanding requests
 	 */
-	public void flush() {
-		while (outstandingRequests > maxCompletions)
-			wait(maxCompletions);
+	private void flush() {
 		Bridge.workerFlush(this, outstandingRequests);
 	}
 	
@@ -234,6 +254,13 @@ public class Worker {
 		return nativeID;
 	}
 	
+	/**
+	 * @return the outstandingRequests
+	 */
+	public int getOutstandingRequests() {
+		return outstandingRequests;
+	}
+
 	/**
 	 * Getter for (this) Worker's address.
 	 * 
@@ -288,9 +315,12 @@ public class Worker {
 		}
 	}
 	
-	int sendMessage(EndPoint ep, long tag, ByteBuffer msg, int msgLen, long reqID) {
+	int sendMessage(EndPoint ep, ByteBuffer msg, int msgLen, long tag, long reqID) {
 		if (msgLen > msg.remaining())
 			throw new BufferUnderflowException();
+		
+		if (outstandingRequests == maxEvents)
+			throw new IllegalStateException("Number of requests exceeds limit");
 		
 		int sent = Bridge.sendMsgAsync(ep, tag, msg, msgLen, reqID);
 
@@ -299,9 +329,12 @@ public class Worker {
 		return sent;
 	}
 	
-	private int recvMessage(long tag, long tagMask, ByteBuffer buff, int buffLen, long reqID) {
+	private int recvMessage(ByteBuffer buff, int buffLen, long tag, long tagMask, long reqID) {
 		if (buffLen > buff.remaining())
 			throw new BufferOverflowException();
+		
+		if (outstandingRequests == maxEvents)
+			throw new IllegalStateException("Number of requests exceeds limit");
 		
 		int rcvd = Bridge.recvMsgAsync(this, tag, tagMask, buff, buffLen, reqID);
 		
@@ -342,7 +375,7 @@ public class Worker {
 	 * Worker will invoke the implemented method whenever a request is completed.
 	 */
 	@FunctionalInterface
-	public static interface Callbacks {
+	public static interface Callback {
 		
 		/**
 		 * Invoked whenever an event is completed.

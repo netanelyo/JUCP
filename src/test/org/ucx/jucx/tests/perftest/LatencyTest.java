@@ -3,7 +3,6 @@ package org.ucx.jucx.tests.perftest;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.ucx.jucx.Worker.Callbacks;
 import org.ucx.jucx.WorkerAddress;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfParams;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.TcpConnection;
@@ -21,7 +20,7 @@ public abstract class LatencyTest extends PerftestBase {
 	protected void run(PerfParams params) {
 		ctx = new PerfContext(params);
 		initBuffers();
-		ctx.cb = new Callback();
+		ctx.cb = new PerftestCallback();
 		super.run(params);
 	}
 	
@@ -53,11 +52,6 @@ public abstract class LatencyTest extends PerftestBase {
 		byte[] msg = Utils.generateRandomBytes(s);
 		sendBuff.put(msg);
 		sendBuff.rewind();
-	}
-	
-	static class Callback implements Callbacks {
-		@Override
-		public void requestHandle(long requestId) { }
 	}
 }
 

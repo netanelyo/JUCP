@@ -32,7 +32,7 @@ public class HelloClient extends HelloWorld {
 	
 	@Override
 	protected void usage() {
-		System.out.println("Usage: ./runClient.sh [<Host_IP_address>] [OPTION]...");
+		System.out.println("Usage: ./runHelloWorld.sh client [<Host_IP_address>] [OPTION]...");
 		System.out.println("Default Host_IP_address: 127.0.0.1");
 		super.usage();
 	}
@@ -59,7 +59,7 @@ public class HelloClient extends HelloWorld {
 		
 		buff.put(MESSAGE.getBytes());
 		buff.rewind();
-		ep.tagSendAsync(-1, buff, buff.capacity());
+		ep.tagSendAsync(buff, buff.capacity());
 	}
 	
 	public static void main(String[] args) {

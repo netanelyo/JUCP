@@ -32,7 +32,7 @@ public class HelloServer extends HelloWorld {
 	
 	@Override
 	protected void usage() {
-		System.out.println("Usage: ./runHelloServer.sh [OPTION]...");
+		System.out.println("Usage: ./runHelloWorld.sh server [OPTION]...");
 		super.usage();
 	}
 	

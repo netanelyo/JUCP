@@ -41,10 +41,10 @@ ucp_address_t* Worker::initWorkerAddress(size_t& addr_len) {
 
 void Worker::putInEventQueue(uint64_t item) {
 	uint64_t swapped = __bswap_64(item);
-	if (eventCnt < queueSize) eventQueue[eventCnt++] = swapped;
-	else pendingRequests.push_back(swapped);
+	eventQueue[eventCnt++] = swapped;
 }
 
+//TODO: unnecessary
 void Worker::moveRequestsToEventQueue() {
 	while (eventCnt < queueSize && hasPendingRequests()) {
 		eventQueue[eventCnt++] = pendingRequests.front();
@@ -52,6 +52,7 @@ void Worker::moveRequestsToEventQueue() {
 	}
 }
 
+//TODO: unnecessary
 int Worker::progress() {
 	moveRequestsToEventQueue();
 
@@ -85,10 +86,9 @@ int Worker::numOfRequests() const {
 }
 
 int Worker::wait(int events) {
-	moveRequestsToEventQueue();
-
-	while (eventCnt < events)
+	do {
 		ucp_worker_progress(ucpWorker);
+	} while (eventCnt < events);
 
 	return freeAndSetCnt();
 }

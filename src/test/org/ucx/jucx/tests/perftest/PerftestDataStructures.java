@@ -9,7 +9,7 @@ import java.net.Socket;
 import org.ucx.jucx.Context;
 import org.ucx.jucx.EndPoint;
 import org.ucx.jucx.Worker;
-import org.ucx.jucx.Worker.Callbacks;
+import org.ucx.jucx.Worker.Callback;
 import org.ucx.jucx.WorkerAddress;
 import org.ucx.jucx.utils.Time;
 
@@ -130,7 +130,7 @@ public class PerftestDataStructures {
 			this.ctx = ctx;
 		}
 		
-		public void setWorker(Callbacks cb, int queueSize) {
+		public void setWorker(Callback cb, int queueSize) {
 			worker = new Worker(ctx, cb, queueSize);
 		}
 		

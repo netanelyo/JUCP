@@ -1,6 +1,0 @@
-Name: org/ucx/jucx/tests/perftest
-Package: org.ucx.jucx.tests.perftest
-Class-Path: .
-Implementation-Title: JUCP performance test
-Implementation-Vendor: Mellanox Technologies
-Implementation-Version: 0000

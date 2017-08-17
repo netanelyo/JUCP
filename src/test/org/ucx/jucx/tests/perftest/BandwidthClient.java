@@ -10,6 +10,7 @@ import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfParams;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.TcpConnection;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.UcpObjects;
 import org.ucx.jucx.utils.Time;
+import org.ucx.jucx.utils.Utils;
 
 public class BandwidthClient extends BandwidthTest implements PerftestClient {
 	
@@ -24,15 +25,21 @@ public class BandwidthClient extends BandwidthTest implements PerftestClient {
 		
 		for (int i = 0; i < iters; i++) {
 			
-			ep.tagSendAsync(TAG, buffers.get(), size, i);
+			ep.tagSendAsync(buffer, size, TAG, i);
 
-			if (!buffers.ready())
-				worker.wait(1);
+			worker.wait(1);
 			
 			if (ctx.print) {
 				System.out.println("Iteration #" + i + " in warmup");
 			}
 		}
+	}
+	
+	@Override
+	protected void initBuffer() {
+		super.initBuffer();
+		buffer.put(Utils.generateRandomBytes(buffer.capacity()));
+		buffer.rewind();
 	}
 	
 	@Override
@@ -49,10 +56,9 @@ public class BandwidthClient extends BandwidthTest implements PerftestClient {
 		
 		int i = 0;
 		while (!done()) {
-			ep.tagSendAsync(TAG, buffers.get(), size, i);
+			ep.tagSendAsync(buffer, size, TAG, i);
 
-			if (!buffers.ready())
-				worker.wait(1);
+			worker.wait(1);
 			
 			measure.currTime = Time.nanoTime();
 			
@@ -64,9 +70,6 @@ public class BandwidthClient extends BandwidthTest implements PerftestClient {
 		}
 		
 		measure.endTime = measure.currTime;
-		
-		while (!buffers.initialized())
-			worker.progress();
 		
 		System.out.println("\nBandwidth Test Results:");
 		printResults(ctx);
