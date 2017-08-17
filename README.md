@@ -10,7 +10,8 @@ TODO: add description
 
 <h2>Examples:</h2>
 <h3>HelloWorld over UCP's tag matching API</h3>
-&bull; Server side creates a local worker, then sends the worker address to the client side.</br>
+&bull; Server side creates a local worker, and waits for a (TCP) connection.</br>
+&bull; Upon connection - server sends the worker address to the client side.</br>
 &bull; Client side sends a single message to server, then exits.</br>
 &bull; Server prints message and exits.</br>
 
@@ -27,8 +28,12 @@ Client side: ./examples/runHelloWorld.sh client [&lt;Host_IP_address&gt;] [OPTIO
 	<pre>	Connected to: 40.40.40.12
 	[SUCCESS] Exiting...</pre>
 	
-<h2>Tests:</h2>
-<h3>Java UCP performance test</h3>
+<h2>Benchmarks:</h2>
+<h3>Java UCP latency performance test</h3>
+Ping-pong application with 10K warmup iterations and 1M time sampling iterations, each message - 64B (by default; can be tuned through cmd-line).</br>
+&bull; Server and client exchanges worker addresses through a TCP connection.</br>
+&bull; Client sends message then wait for a response from server.</br>
+&bull; Client measures RTT time (time passed from send until the response), then calculates latency as &frac12;RTT
 <h4>Run latency test:</h4>
 1. Server: ./tests/perftest.sh ([-h for more info])
 	<pre>	Waiting for connections...
@@ -53,6 +58,12 @@ Client side: ./examples/runHelloWorld.sh client [&lt;Host_IP_address&gt;] [OPTIO
 	<pre>	average latency (usec): 1.683
 	message rate (msg/s): 297072
 	bandwidth (MB/s) : 18.132</pre>
+<h3>Java UCP bandwidth performance test</h3>
+Bandwidth benchmark application with 10K warmup iterations and 1M time sampling iterations, each message - 64B (by default; can be tuned through cmd-line).</br>
+&bull; Server waits for a TCP connection then sends worker address to client.</br>
+&bull; Server waits for incoming messages and does not respond.</br>
+&bull; Client sends messages in a loop without expecting a response.
+<p>&bull; Client measures time difference between two consecutive sends; average latency is <code>(endTime - startTime) / #messages</code> and observations are as mentioned above.</p>
 <h4>Run bandwidth test:</h4>
 1. Server: ./tests/perftest.sh ([-h for more info])
 	<pre>	Waiting for connections...
