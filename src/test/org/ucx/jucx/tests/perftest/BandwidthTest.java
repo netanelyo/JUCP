@@ -7,8 +7,6 @@ import org.ucx.jucx.Worker.Callbacks;
 import org.ucx.jucx.tests.perftest.PerftestDataStructures.PerfParams;
 import org.ucx.jucx.utils.Utils;
 
-import sun.nio.ch.DirectBuffer;
-
 public abstract class BandwidthTest extends PerftestBase {
 
 	protected ByteBufferArray buffers;
@@ -72,8 +70,6 @@ public abstract class BandwidthTest extends PerftestBase {
 			
 			for (int i = 0; i < arr.length; i++) {
 				arr[i] = ByteBuffer.allocateDirect(bufferSize);
-				long addr = ((DirectBuffer)arr[i]).address();
-				System.out.println("Buffer address: 0x" + Long.toHexString(addr));
 			}
 		}
 	}

@@ -70,6 +70,7 @@ public abstract class HelloWorld {
 	protected void close() {
 		worker.close();
 		ctx.close();
+		System.out.println("[SUCCESS] Exiting...");
 	}
 	
 	class Callback implements Callbacks {
