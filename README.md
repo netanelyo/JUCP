@@ -16,74 +16,81 @@ TODO: add description
 
 <h4>Run Examples:</h4>
 Server side: ./examples/runHelloWorld.sh server [OPTION]...</br>
-1. ./examples/runHelloWorld.sh server</br>
-	Waiting for connections...</br>
-	Connected to: 40.40.40.12</br>
-	Received:</br>
-	UCP Client says hello!</br>
-	[SUCCESS] Exiting...</br>
+1. ./examples/runHelloWorld.sh server
+	<pre>
+	Waiting for connections...
+	Connected to: 40.40.40.12
+	Received:
+	UCP Client says hello!
+	[SUCCESS] Exiting...
+	</pre>
 Client side: ./examples/runHelloWorld.sh client [<Host_IP_address>] [OPTION]...</br>
-2. ./examples/runHelloWorld.sh client 40.40.40.12</br>
-	Connected to: 40.40.40.12</br>
-	[SUCCESS] Exiting...</br>
-
+2. ./examples/runHelloWorld.sh client 40.40.40.12
+	<pre>
+	Connected to: 40.40.40.12
+	[SUCCESS] Exiting...
+	</pre>
+	
 <h2>Tests:</h2>
 <h3>Java UCP performance test</h3>
 <h4>Run latency test:</h4>
-1. Server: ./tests/perftest.sh ([-h for more info])</br>
+1. Server: ./tests/perftest.sh ([-h for more info])
 	<pre>
-	Waiting for connections...</br>
-	Connected to: 40.40.40.12</br>
-	*****   Latency Test   *****</br>
-	# iterations: 1000000</br>
-	Message size: 64</br>
+	Waiting for connections...
+	Connected to: 40.40.40.12
+	*****   Latency Test   *****
+	# iterations: 1000000
+	Message size: 64
 	</pre>
-
-2. Client: ./tests/perftest.sh 40.40.40.12 ([-h for more info])</br>
+2. Client: ./tests/perftest.sh 40.40.40.12 ([-h for more info])
 	<pre>
-	Connected to: 40.40.40.12</br>
-	*****   Latency Test   *****</br>
-	# iterations: 1000000</br>
-	Message size: 64</br>
-</br>
-	Latency Test Results:</br>
-	---> <MAX> observation    = 1323.649</br>
-	---> percentile 0.99999   = 34.325</br>
-	---> percentile 0.9999    = 4.933</br>
-	---> percentile 0.999     = 3.372</br>
-	---> percentile 0.99      = 2.212</br>
-	---> percentile 0.9       = 1.919</br>
-	---> percentile 0.5       = 1.609</br>
-	---> <MIN> observation    = 1.467</br>
-</br>
-	average latency (usec): 1.683</br>
-	message rate (msg/s): 297072</br>
-	bandwidth (MB/s) : 18.132</br>
+	Connected to: 40.40.40.12
+	*****   Latency Test   *****
+	# iterations: 1000000
+	Message size: 64
+
+	Latency Test Results:
+	---> <MAX> observation    = 1323.649
+	---> percentile 0.99999   = 34.325
+	---> percentile 0.9999    = 4.933
+	---> percentile 0.999     = 3.372
+	---> percentile 0.99      = 2.212
+	---> percentile 0.9       = 1.919
+	---> percentile 0.5       = 1.609
+	---> <MIN> observation    = 1.467
+
+	average latency (usec): 1.683
+	message rate (msg/s): 297072
+	bandwidth (MB/s) : 18.132
 	</pre>
 <h4>Run bandwidth test:</h4>
-1. Server: ./tests/perftest.sh ([-h for more info])</br>
-	Waiting for connections...</br>
-	Connected to: 40.40.40.12</br>
-	*****   Bandwidth Test   *****</br>
-	# iterations: 1000000</br>
-	Message size: 64</br>
+1. Server: ./tests/perftest.sh ([-h for more info])
+	<pre>
+	Waiting for connections...
+	Connected to: 40.40.40.12
+	*****   Bandwidth Test   *****
+	# iterations: 1000000
+	Message size: 64
+	</pre>
 
-2. Client: ./tests/perftest.sh 40.40.40.12 -b ([-h for more info])</br>
-	Connected to: 40.40.40.12</br>
-	****   Bandwidth Test   ****</br>
-	# iterations: 1000000</br>
-	Message size: 64</br>
-</br>
-	Bandwidth Test Results:</br>
-	---> <MAX> observation    = 2663.861</br>
-	---> percentile 0.99999   = 15.586</br>
-	---> percentile 0.9999    = 3.773</br>
-	---> percentile 0.999     = 1.259</br>
-	---> percentile 0.99      = 0.589</br>
-	---> percentile 0.9       = 0.369</br>
-	---> percentile 0.5       = 0.316</br>
-	---> <MIN> observation    = 0.304</br>
-</br>
-	average latency (usec): 0.348</br>
-	message rate (msg/s): 2873997</br>
-	bandwidth (MB/s) : 175.415</br>
+2. Client: ./tests/perftest.sh 40.40.40.12 -b ([-h for more info])
+	<pre>
+	Connected to: 40.40.40.12
+	****   Bandwidth Test   ****
+	# iterations: 1000000
+	Message size: 64
+
+	Bandwidth Test Results:
+	---> <MAX> observation    = 2663.861
+	---> percentile 0.99999   = 15.586
+	---> percentile 0.9999    = 3.773
+	---> percentile 0.999     = 1.259
+	---> percentile 0.99      = 0.589
+	---> percentile 0.9       = 0.369
+	---> percentile 0.5       = 0.316
+	---> <MIN> observation    = 0.304
+
+	average latency (usec): 0.348
+	message rate (msg/s): 2873997
+	bandwidth (MB/s) : 175.415
+	</pre>
