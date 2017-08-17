@@ -22,7 +22,7 @@ Server side: ./examples/runHelloWorld.sh server [OPTION]...</br>
 	Received:
 	UCP Client says hello!
 	[SUCCESS] Exiting...</pre>
-Client side: ./examples/runHelloWorld.sh client [<Host_IP_address>] [OPTION]...</br>
+Client side: ./examples/runHelloWorld.sh client [&lt;Host_IP_address&gt;] [OPTION]...</br>
 2. ./examples/runHelloWorld.sh client 40.40.40.12
 	<pre>	Connected to: 40.40.40.12
 	[SUCCESS] Exiting...</pre>
