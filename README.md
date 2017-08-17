@@ -62,19 +62,19 @@ Client side: ./examples/runHelloWorld.sh client [<Host_IP_address>] [OPTION]...<
 	Message size: 64</pre>
 
 2. Client: ./tests/perftest.sh 40.40.40.12 -b ([-h for more info])
-	<pre>	Connected to: 40.40.40.12
-	****   Bandwidth Test   ****
-	# iterations: 1000000
-	Message size: 64</pre>
-	<pre>	Bandwidth Test Results:
-	---> &lt;MAX&gt; observation    = 2663.861
-	---> percentile 0.99999   = 15.586
-	---> percentile 0.9999    = 3.773
-	---> percentile 0.999     = 1.259
-	---> percentile 0.99      = 0.589
-	---> percentile 0.9       = 0.369
-	---> percentile 0.5       = 0.316
-	---> &lt;MIN&gt; observation    = 0.304</pre>
-	<pre>	average latency (usec): 0.348
-	message rate (msg/s): 2873997
-	bandwidth (MB/s) : 175.415</pre>
+	<pre>    Connected to: 40.40.40.12
+       ****   Bandwidth Test   ****
+       # iterations: 1000000
+       Message size: 64</pre>
+	<pre>    Bandwidth Test Results:
+       ---> &lt;MAX&gt; observation    = 2663.861
+       ---> percentile 0.99999   = 15.586
+       ---> percentile 0.9999    = 3.773
+       ---> percentile 0.999     = 1.259
+       ---> percentile 0.99      = 0.589
+       ---> percentile 0.9       = 0.369
+       ---> percentile 0.5       = 0.316
+       ---> &lt;MIN&gt; observation    = 0.304</pre>
+	<pre>    average latency (usec): 0.348
+       message rate (msg/s): 2873997
+       bandwidth (MB/s) : 175.415</pre>
