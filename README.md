@@ -31,13 +31,16 @@ Client side: ./examples/runHelloWorld.sh client [<Host_IP_address>] [OPTION]...<
 <h3>Java UCP performance test</h3>
 <h4>Run latency test:</h4>
 1. Server: ./tests/perftest.sh ([-h for more info])</br>
+	<pre>
 	Waiting for connections...</br>
 	Connected to: 40.40.40.12</br>
 	*****   Latency Test   *****</br>
 	# iterations: 1000000</br>
 	Message size: 64</br>
+	</pre>
 
 2. Client: ./tests/perftest.sh 40.40.40.12 ([-h for more info])</br>
+	<pre>
 	Connected to: 40.40.40.12</br>
 	*****   Latency Test   *****</br>
 	# iterations: 1000000</br>
@@ -56,7 +59,7 @@ Client side: ./examples/runHelloWorld.sh client [<Host_IP_address>] [OPTION]...<
 	average latency (usec): 1.683</br>
 	message rate (msg/s): 297072</br>
 	bandwidth (MB/s) : 18.132</br>
-
+	</pre>
 <h4>Run bandwidth test:</h4>
 1. Server: ./tests/perftest.sh ([-h for more info])</br>
 	Waiting for connections...</br>
