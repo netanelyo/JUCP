@@ -124,7 +124,7 @@ if jucp:
     os.chdir(dir + '/src/c')
     cmd = './autogen.sh && ./configure --silent && make clean -s'
     status1 = os.system(cmd)
-    cmd = 'make -s'
+    cmd = 'make -j -s'
     status2 = os.system(cmd)
     if status2 != 0 or status1 != 0:
         print('FAILURE! stopped JUCP build: Native')
