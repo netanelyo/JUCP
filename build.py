@@ -84,11 +84,10 @@ print('\nThe JUCP top directory is ' + dir)
 
 ### CLEAN
 if jucp:
-    if not os.path.exists(bin_dir):
-        os.makedirs(bin_dir)
-    else:
+    if os.path.exists(bin_dir):
 	shutil.rmtree(bin_dir)
-
+    os.makedirs(bin_dir)
+    
 os.chdir(dir)
 
 if ucx:
